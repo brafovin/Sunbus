@@ -4,7 +4,7 @@ import { useCoins } from '../context/CoinContext';
 import { matches } from '../data/matches';
 
 const FAKE_USERS = ['MaxFan','SportKing','GoalHunter','BayernFan','BVBler','TorJäger','UltraKurve'];
-const FAKE_MSGS  = ['Wahnsinn! 🔥','Was für ein Tor!','Come on Bayern!','Der Schiri ist blind!','Unglaublich 😱','BVB kämpft 💪','Abseits!!!','Hammer Freistoß!','TOOOOR 🎉','Weltklasse! ⭐','Super Flanke ⚽'];
+const FAKE_MSGS  = ['Wahnsinn! 🔥','Was für ein Tor!','Come on!','Der Schiri ist blind!','Unglaublich 😱','Kämpft weiter 💪','Abseits!!!','Hammer Freistoß!','TOOOOR 🎉','Weltklasse! ⭐','Super Flanke ⚽'];
 const HOME_NAMES = ['Neuer','Kimmich','Upamecano','Kim','Davies','Müller','Goretzka','Musiala','Sané','Coman','Kane'];
 const AWAY_NAMES = ['Lunin','Carvajal','Rüdiger','Alaba','Mendy','Valverde','Tchouaméni','Kroos','Bellingham','Rodrygo','Vinicius'];
 
@@ -13,86 +13,202 @@ interface FE  { id:number; emoji:string; x:number; }
 let mid=1, fid=1;
 const fmt=(d:Date)=>d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
 
-/* ─── 3-D perspective helpers ─── */
-const CAM = { x:50, y:180, z:55, fov:320 };
+/* ─── Perspective camera (high side-stand angle like TV) ─── */
+const CAM = { cx:50, cy:200, cz:38, fov:380 };
 
-function project(wx:number, wy:number, wz:number, camX:number) {
+function project(wx:number, wy:number, camX:number) {
   const rx = wx - camX;
-  const ry = wy - CAM.y;
-  const rz = wz - CAM.z;
-  const scale = CAM.fov / Math.max(rz + CAM.fov, 10);
-  return { sx: 50 + rx * scale, sy: 50 + ry * scale, scale };
+  const ry = wy - CAM.cy;
+  const rz = 0  - CAM.cz;
+  const dz = CAM.fov / Math.max(-rz + CAM.fov + wy * 0.8, 8);
+  return {
+    sx: 50 + rx * dz,
+    sy: 62 + ry * dz * 0.55 - wy * 0.28,
+    scale: Math.max(0.28, Math.min(2.2, dz))
+  };
 }
 
-/* ─── Player SVG in perspective ─── */
-function PPlayer({ wx,wy,color,num,name,hasBall,camX }:
-  {wx:number;wy:number;color:string;num:string;name:string;hasBall:boolean;camX:number}) {
-  const {sx,sy,scale} = project(wx,wy,0,camX);
-  const s = Math.max(0.4, Math.min(1.6, scale));
+/* ─── Realistic TV-broadcast player ─── */
+function PPlayer({ wx,wy,color,kit2,num,name,hasBall,camX,frame,id }:
+  {wx:number;wy:number;color:string;kit2:string;num:string;name:string;hasBall:boolean;camX:number;frame:number;id:number}) {
+
+  const {sx,sy,scale} = project(wx,wy,camX);
+  const s = scale;
+  /* depth-of-field: far players get blurred */
+  const dof = Math.max(0, (0.55 - scale) * 3.5);
+
+  /* running cycle — offset per player id so they don't all sync */
+  const t = (frame + id * 17) * 0.18;
+  const legSwing = Math.sin(t) * 9;
+  const armSwing = Math.cos(t) * 7;
+
+  /* skin tones variety */
+  const skins = ['#d4a574','#c8956c','#b07040','#e8c49a','#8b5e3c'];
+  const skin = skins[id % skins.length];
+
+  /* shirt gradient id per player */
+  const gid = `kg${id}`;
+  const sid = `sk${id}`;
+
   return (
-    <g transform={`translate(${sx},${sy}) scale(${s})`}>
-      <ellipse cx="0" cy="7" rx="3.5" ry="1.2" fill="rgba(0,0,0,0.3)"/>
-      {/* legs */}
-      <rect x="-1.8" y="3.5" width="1.4" height="5" rx="0.7" fill={color}/>
-      <rect x="0.4"  y="3.5" width="1.4" height="5" rx="0.7" fill={color}/>
-      {/* shorts */}
-      <rect x="-2.2" y="3" width="4.4" height="2.5" rx="1" fill="white" opacity="0.35"/>
-      {/* body */}
-      <rect x="-3" y="-2" width="6" height="5.5" rx="1.4" fill={color}/>
+    <g transform={`translate(${sx},${sy}) scale(${s})`}
+       style={dof > 0.2 ? {filter:`blur(${dof.toFixed(1)}px)`} : undefined}>
+      <defs>
+        {/* jersey gradient — light from above-left */}
+        <linearGradient id={gid} x1="0" y1="0" x2="0.6" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="1"/>
+          <stop offset="60%" stopColor={color} stopOpacity="0.85"/>
+          <stop offset="100%" stopColor="rgba(0,0,0,0.6)" stopOpacity="1"/>
+        </linearGradient>
+        {/* skin gradient */}
+        <radialGradient id={sid} cx="40%" cy="35%" r="60%">
+          <stop offset="0%" stopColor={skin} stopOpacity="1"/>
+          <stop offset="100%" stopColor="#7a4020" stopOpacity="1"/>
+        </radialGradient>
+      </defs>
+
+      {/* ground shadow */}
+      <ellipse cx="0" cy="13" rx="4.5" ry="1.2" fill="rgba(0,0,0,0.35)"/>
+
+      {/* ── LEGS ── */}
+      {/* back leg */}
+      <g transform={`rotate(${-legSwing * 0.7},0,4)`}>
+        {/* thigh */}
+        <rect x="-1.1" y="4" width="2.2" height="4.2" rx="1" fill="#111"/>
+        {/* shin */}
+        <rect x="-1" y="7.5" width="2" height="3.8" rx="0.9" fill="#1a1a1a"/>
+        {/* sock */}
+        <rect x="-1" y="9.5" width="2" height="2.5" rx="0.7" fill="white" opacity="0.85"/>
+        {/* boot */}
+        <ellipse cx="0" cy="12.2" rx="1.8" ry="0.9" fill="#1a1a1a"/>
+      </g>
+      {/* front leg */}
+      <g transform={`rotate(${legSwing},0,4)`}>
+        <rect x="-1.2" y="4" width="2.4" height="4.2" rx="1" fill="#222"/>
+        <rect x="-1.1" y="7.5" width="2.2" height="3.8" rx="0.9" fill="#2a2a2a"/>
+        <rect x="-1.1" y="9.5" width="2.2" height="2.5" rx="0.7" fill="white" opacity="0.9"/>
+        <ellipse cx="0" cy="12.2" rx="2" ry="1" fill="#111"/>
+      </g>
+
+      {/* ── SHORTS ── */}
+      <rect x="-3.2" y="3.2" width="6.4" height="3.5" rx="1.2"
+        fill={kit2} opacity="0.95"/>
+      {/* shorts highlight */}
+      <rect x="-2.5" y="3.5" width="1.5" height="2" rx="0.6"
+        fill="white" opacity="0.12"/>
+
+      {/* ── JERSEY ── */}
+      <rect x="-4" y="-3" width="8" height="7" rx="2"
+        fill={`url(#${gid})`}/>
+      {/* collar */}
+      <path d="M-1.5,-3 Q0,-1.5 1.5,-3" fill="none" stroke={kit2} strokeWidth="1.2"/>
+      {/* jersey highlight (light sheen) */}
+      <rect x="-3" y="-2.5" width="2.2" height="5" rx="1"
+        fill="white" opacity="0.08"/>
       {/* number */}
-      <text x="0" y="2" textAnchor="middle" fill="white" fontSize="2.4" fontWeight="bold">{num}</text>
-      {/* head */}
-      <circle cx="0" cy="-4.5" r="2.6" fill="#f5c99a" stroke={color} strokeWidth="0.5"/>
+      <text x="0.3" y="2.2" textAnchor="middle" fill="white"
+        fontSize="3" fontWeight="bold" opacity="0.92"
+        fontFamily="Arial,sans-serif">{num}</text>
+
+      {/* ── ARMS ── */}
+      {/* left arm */}
+      <g transform={`rotate(${-armSwing},-4,0)`}>
+        <rect x="-5.8" y="-2" width="2.2" height="4.5" rx="1"
+          fill={`url(#${gid})`}/>
+        {/* forearm skin */}
+        <rect x="-5.8" y="1.5" width="2.2" height="2" rx="0.9"
+          fill={skin} opacity="0.9"/>
+      </g>
+      {/* right arm */}
+      <g transform={`rotate(${armSwing},4,0)`}>
+        <rect x="3.6" y="-2" width="2.2" height="4.5" rx="1"
+          fill={`url(#${gid})`}/>
+        <rect x="3.6" y="1.5" width="2.2" height="2" rx="0.9"
+          fill={skin} opacity="0.9"/>
+      </g>
+
+      {/* ── NECK ── */}
+      <rect x="-1.2" y="-5" width="2.4" height="2.5" rx="1"
+        fill={skin} opacity="0.95"/>
+
+      {/* ── HEAD ── */}
+      <circle cx="0" cy="-8" r="3.8" fill={`url(#${sid})`}/>
+      {/* face shadow */}
+      <ellipse cx="0.5" cy="-7.5" rx="2.5" ry="2.8"
+        fill="rgba(0,0,0,0.08)"/>
+      {/* eyes subtle */}
+      <circle cx="-1.2" cy="-8.2" r="0.45" fill="rgba(0,0,0,0.6)"/>
+      <circle cx="1.2"  cy="-8.2" r="0.45" fill="rgba(0,0,0,0.6)"/>
       {/* hair */}
-      <ellipse cx="0" cy="-6.7" rx="2.4" ry="1" fill="#5a3a1a"/>
-      {/* arms */}
-      <rect x="-4.8" y="-1.5" width="2" height="3" rx="1" fill={color}/>
-      <rect x="2.8"  y="-1.5" width="2" height="3" rx="1" fill={color}/>
-      {hasBall && <circle cx="3.5" cy="6" r="1.8" fill="white" stroke="#444" strokeWidth="0.4"/>}
-      {/* name tag */}
-      <rect x="-5" y="8.5" width="10" height="3.5" rx="1" fill="rgba(0,0,0,0.55)"/>
-      <text x="0" y="11.2" textAnchor="middle" fill="white" fontSize="2.4" fontWeight="bold">{name}</text>
+      <path d={`M-3.8,-8 Q-3.5,-12.5 0,-12.8 Q3.5,-12.5 3.8,-8`}
+        fill="#2c1a08" opacity="0.92"/>
+      {/* hair side */}
+      <path d={`M-3.8,-8 Q-4.2,-9 -3.2,-10`}
+        fill="#2c1a08" opacity="0.7"/>
+
+      {/* ── BALL (if has it) ── */}
+      {hasBall && (
+        <g transform="translate(5,13)">
+          <ellipse cx="0" cy="2" rx="2.5" ry="0.8" fill="rgba(0,0,0,0.3)"/>
+          <circle cx="0" cy="0" r="2.2" fill="white" stroke="#555" strokeWidth="0.5"/>
+          {/* pentagon pattern */}
+          <circle cx="0" cy="0" r="0.9" fill="#1a1a1a"/>
+          <line x1="0" y1="-2.2" x2="0" y2="-0.9" stroke="#1a1a1a" strokeWidth="0.35"/>
+          <line x1="2.1" y1="0.7" x2="0.85" y2="0.45" stroke="#1a1a1a" strokeWidth="0.35"/>
+          <line x1="-2.1" y1="0.7" x2="-0.85" y2="0.45" stroke="#1a1a1a" strokeWidth="0.35"/>
+        </g>
+      )}
+
+      {/* ── NAME TAG (broadcast style) ── */}
+      <rect x="-7" y="15.5" width="14" height="4" rx="1"
+        fill="rgba(0,0,0,0.72)"/>
+      <rect x="-7" y="15.5" width="3" height="4" rx="1"
+        fill={color} opacity="0.9"/>
+      <text x="0" y="18.6" textAnchor="middle" fill="white"
+        fontSize="2.8" fontWeight="bold" fontFamily="Arial,sans-serif">{name}</text>
     </g>
   );
 }
 
-/* ─── Live pitch component ─── */
+/* ─── Live pitch ─── */
 function LivePitch({ match, playing }:{match:typeof matches[0]; playing:boolean}) {
   const initPlayers = ()=>[
-    {id:0, team:0, x:5,  y:0, dx:0,   dy:0,   nm:HOME_NAMES[0],  nu:'1'},
-    {id:1, team:0, x:20, y:-30,dx:0.1,dy:0.05,nm:HOME_NAMES[1],  nu:'5'},
-    {id:2, team:0, x:20, y:-10,dx:0.1,dy:0.08,nm:HOME_NAMES[2],  nu:'5'},
-    {id:3, team:0, x:20, y:10, dx:0.1,dy:-0.08,nm:HOME_NAMES[3], nu:'3'},
-    {id:4, team:0, x:20, y:30, dx:0.1,dy:-0.05,nm:HOME_NAMES[4], nu:'19'},
-    {id:5, team:0, x:38, y:-20,dx:0.2,dy:0.1,nm:HOME_NAMES[5],  nu:'25'},
-    {id:6, team:0, x:38, y:0,  dx:0.2,dy:-0.1,nm:HOME_NAMES[6], nu:'8'},
-    {id:7, team:0, x:38, y:20, dx:0.2,dy:0.1,nm:HOME_NAMES[7],  nu:'42'},
-    {id:8, team:0, x:54, y:-25,dx:0.3,dy:0.1,nm:HOME_NAMES[8],  nu:'10'},
-    {id:9, team:0, x:54, y:25, dx:0.3,dy:-0.1,nm:HOME_NAMES[9], nu:'11'},
-    {id:10,team:0, x:58, y:0,  dx:0.35,dy:0.05,nm:HOME_NAMES[10],nu:'9'},
-    {id:11,team:1, x:95, y:0,  dx:0,   dy:0,   nm:AWAY_NAMES[0], nu:'1'},
-    {id:12,team:1, x:80, y:-30,dx:-0.1,dy:0.05,nm:AWAY_NAMES[1], nu:'2'},
-    {id:13,team:1, x:80, y:-10,dx:-0.1,dy:0.08,nm:AWAY_NAMES[2], nu:'22'},
-    {id:14,team:1, x:80, y:10, dx:-0.1,dy:-0.08,nm:AWAY_NAMES[3],nu:'4'},
-    {id:15,team:1, x:80, y:30, dx:-0.1,dy:-0.05,nm:AWAY_NAMES[4],nu:'23'},
-    {id:16,team:1, x:62, y:-20,dx:-0.2,dy:0.1,nm:AWAY_NAMES[5], nu:'15'},
-    {id:17,team:1, x:62, y:0,  dx:-0.2,dy:-0.1,nm:AWAY_NAMES[6],nu:'8'},
-    {id:18,team:1, x:62, y:20, dx:-0.2,dy:0.1,nm:AWAY_NAMES[7], nu:'8'},
-    {id:19,team:1, x:46, y:-25,dx:-0.3,dy:0.1,nm:AWAY_NAMES[8], nu:'22'},
-    {id:20,team:1, x:46, y:25, dx:-0.3,dy:-0.1,nm:AWAY_NAMES[9],nu:'11'},
-    {id:21,team:1, x:42, y:0,  dx:-0.35,dy:0.05,nm:AWAY_NAMES[10],nu:'9'},
+    {id:0, team:0, x:5,  y:0,  dx:0,    dy:0,    nm:HOME_NAMES[0],  nu:'1'},
+    {id:1, team:0, x:20, y:-28,dx:0.08, dy:0.04, nm:HOME_NAMES[1],  nu:'5'},
+    {id:2, team:0, x:20, y:-9, dx:0.09, dy:0.07, nm:HOME_NAMES[2],  nu:'4'},
+    {id:3, team:0, x:20, y:9,  dx:0.09, dy:-0.07,nm:HOME_NAMES[3],  nu:'3'},
+    {id:4, team:0, x:20, y:28, dx:0.08, dy:-0.04,nm:HOME_NAMES[4],  nu:'19'},
+    {id:5, team:0, x:37, y:-20,dx:0.18, dy:0.09, nm:HOME_NAMES[5],  nu:'25'},
+    {id:6, team:0, x:37, y:0,  dx:0.18, dy:-0.09,nm:HOME_NAMES[6],  nu:'8'},
+    {id:7, team:0, x:37, y:20, dx:0.18, dy:0.09, nm:HOME_NAMES[7],  nu:'42'},
+    {id:8, team:0, x:53, y:-24,dx:0.28, dy:0.09, nm:HOME_NAMES[8],  nu:'10'},
+    {id:9, team:0, x:53, y:24, dx:0.28, dy:-0.09,nm:HOME_NAMES[9],  nu:'11'},
+    {id:10,team:0, x:57, y:0,  dx:0.32, dy:0.04, nm:HOME_NAMES[10], nu:'9'},
+    {id:11,team:1, x:95, y:0,  dx:0,    dy:0,    nm:AWAY_NAMES[0],  nu:'1'},
+    {id:12,team:1, x:80, y:-28,dx:-0.08,dy:0.04, nm:AWAY_NAMES[1],  nu:'2'},
+    {id:13,team:1, x:80, y:-9, dx:-0.09,dy:0.07, nm:AWAY_NAMES[2],  nu:'22'},
+    {id:14,team:1, x:80, y:9,  dx:-0.09,dy:-0.07,nm:AWAY_NAMES[3],  nu:'4'},
+    {id:15,team:1, x:80, y:28, dx:-0.08,dy:-0.04,nm:AWAY_NAMES[4],  nu:'23'},
+    {id:16,team:1, x:63, y:-20,dx:-0.18,dy:0.09, nm:AWAY_NAMES[5],  nu:'15'},
+    {id:17,team:1, x:63, y:0,  dx:-0.18,dy:-0.09,nm:AWAY_NAMES[6],  nu:'8'},
+    {id:18,team:1, x:63, y:20, dx:-0.18,dy:0.09, nm:AWAY_NAMES[7],  nu:'14'},
+    {id:19,team:1, x:47, y:-24,dx:-0.28,dy:0.09, nm:AWAY_NAMES[8],  nu:'5'},
+    {id:20,team:1, x:47, y:24, dx:-0.28,dy:-0.09,nm:AWAY_NAMES[9],  nu:'11'},
+    {id:21,team:1, x:43, y:0,  dx:-0.32,dy:0.04, nm:AWAY_NAMES[10], nu:'9'},
   ];
 
-  const [ppos, setPpos]     = useState(initPlayers);
-  const [ball, setBall]     = useState({x:50,y:0,vx:0.4,vy:0.2});
-  const [camX, setCamX]     = useState(50);
-  const [homeScore, setHS]  = useState(match.homeScore??0);
-  const [awayScore, setAS]  = useState(match.awayScore??0);
-  const [minute, setMin]    = useState(match.minute??1);
-  const [goalMsg, setGoal]  = useState('');
+  const [ppos, setPpos]    = useState(initPlayers);
+  const [ball, setBall]    = useState({x:50,y:0,vx:0.45,vy:0.22});
+  const [camX, setCamX]    = useState(50);
+  const [homeScore,setHS]  = useState(match.homeScore??0);
+  const [awayScore,setAS]  = useState(match.awayScore??0);
+  const [minute,setMin]    = useState(match.minute??1);
+  const [goalMsg,setGoal]  = useState('');
+  const [frame,setFrame]   = useState(0);
   const rafRef  = useRef<number>(0);
   const frm     = useRef(0);
   const nearest = useRef(0);
+  const ballRef = useRef({x:50,y:0,vx:0.45,vy:0.22});
 
   useEffect(()=>{
     setHS(match.homeScore??0); setAS(match.awayScore??0);
@@ -104,20 +220,21 @@ function LivePitch({ match, playing }:{match:typeof matches[0]; playing:boolean}
     if(!playing){cancelAnimationFrame(rafRef.current);return;}
     function tick(){
       frm.current++;
-      // ball movement
-      setBall(prev=>{
+      // ball
+      ballRef.current = (prev=>{
         let{x,y,vx,vy}=prev;
         x+=vx; y+=vy;
-        if(x<2||x>98){vx=-vx*0.85; x=Math.max(2,Math.min(98,x));}
-        if(y<-38||y>38){vy=-vy*0.85; y=Math.max(-38,Math.min(38,y));}
-        if(Math.random()<0.02){vx+=(Math.random()-0.5)*0.7; vy+=(Math.random()-0.5)*0.4;}
+        if(x<2||x>98){vx=-vx*0.88; x=Math.max(2,Math.min(98,x));}
+        if(y<-37||y>37){vy=-vy*0.88; y=Math.max(-37,Math.min(37,y));}
+        if(Math.random()<0.018){vx+=(Math.random()-0.5)*0.6; vy+=(Math.random()-0.5)*0.4;}
         const sp=Math.sqrt(vx*vx+vy*vy);
-        if(sp>3.5){vx=vx/sp*3.5; vy=vy/sp*3.5;}
+        if(sp>3.8){vx=vx/sp*3.8; vy=vy/sp*3.8;}
         return{x,y,vx,vy};
-      });
-      // players
+      })(ballRef.current);
+      setBall({...ballRef.current});
+
       setPpos(prev=>{
-        const bx=ball.x, by=ball.y;
+        const bx=ballRef.current.x, by=ballRef.current.y;
         let md=9999,mi=0;
         prev.forEach((p,i)=>{const d=Math.hypot(p.x-bx,p.y-by);if(d<md){md=d;mi=i;}});
         nearest.current=mi;
@@ -126,31 +243,30 @@ function LivePitch({ match, playing }:{match:typeof matches[0]; playing:boolean}
           let ndx=dx,ndy=dy;
           if(i===mi){
             const d=Math.hypot(bx-x,by-y);
-            if(d>3){ndx=(bx-x)/d*0.45; ndy=(by-y)/d*0.35;}
+            if(d>2.5){ndx=(bx-x)/d*0.5; ndy=(by-y)/d*0.4;}
           } else {
-            ndx=dx+(Math.random()-0.5)*0.06;
-            ndy=dy+(Math.random()-0.5)*0.06;
-            ndx=Math.max(-0.45,Math.min(0.45,ndx));
-            ndy=Math.max(-0.45,Math.min(0.45,ndy));
+            ndx=dx+(Math.random()-0.5)*0.055;
+            ndy=dy+(Math.random()-0.5)*0.055;
+            ndx=Math.max(-0.5,Math.min(0.5,ndx));
+            ndy=Math.max(-0.5,Math.min(0.5,ndy));
           }
           x+=ndx; y+=ndy;
           if(x<2||x>98){ndx=-ndx; x=Math.max(2,Math.min(98,x));}
-          if(y<-38||y>38){ndy=-ndy; y=Math.max(-38,Math.min(38,y));}
+          if(y<-37||y>37){ndy=-ndy; y=Math.max(-37,Math.min(37,y));}
           return{...p,x,y,dx:ndx,dy:ndy};
         });
       });
-      // camera follows ball smoothly
-      setCamX(cx=>cx+(ball.x-cx)*0.04);
-      // minute
+
+      setCamX(cx=>cx+(ballRef.current.x-cx)*0.035);
+      setFrame(frm.current);
       if(frm.current%60===0) setMin(m=>Math.min(90,m+1));
-      // goal
-      if(frm.current>300&&frm.current%1800===0&&Math.random()<0.5){
+      if(frm.current>300&&frm.current%1800===0&&Math.random()<0.45){
         const home=Math.random()>0.5;
         if(home) setHS(s=>s+1); else setAS(s=>s+1);
         const arr=home?HOME_NAMES:AWAY_NAMES;
         const scorer=arr[Math.floor(Math.random()*arr.length)];
-        setGoal(`⚽ TOOR! ${scorer}`);
-        setTimeout(()=>setGoal(''),4500);
+        setGoal(`⚽ TOR! ${scorer}`);
+        setTimeout(()=>setGoal(''),5000);
       }
       rafRef.current=requestAnimationFrame(tick);
     }
@@ -158,181 +274,194 @@ function LivePitch({ match, playing }:{match:typeof matches[0]; playing:boolean}
     return()=>cancelAnimationFrame(rafRef.current);
   },[playing]);
 
-  /* ── Pitch lines in perspective ── */
   function projP(wx:number,wy:number){
-    const {sx,sy}=project(wx,wy,0,camX);
-    return `${sx},${sy}`;
+    const {sx,sy}=project(wx,wy,camX);
+    return `${sx.toFixed(2)},${sy.toFixed(2)}`;
   }
-  const lines=[
-    // touchlines
-    [[2,-38],[2,38],[98,38],[98,-38],[2,-38]],
-    // halfway
-    [[50,-38],[50,38]],
-    // left pen box
-    [[2,-18],[18,-18],[18,18],[2,18]],
-    // right pen box
-    [[82,-18],[98,-18],[98,18],[82,18]],
-    // goals
-    [[2,-8],[0,-8],[0,8],[2,8]],
-    [[98,-8],[100,-8],[100,8],[98,8]],
+
+  // pitch lines (world coords: x=0..100, y=-38..38)
+  const pitchLines=[
+    [[2,-38],[2,38],[98,38],[98,-38],[2,-38]],   // boundary
+    [[50,-38],[50,38]],                           // halfway
+    [[2,-18],[18,-18],[18,18],[2,18]],            // left pen box
+    [[82,-18],[98,-18],[98,18],[82,18]],          // right pen box
+    [[2,-8],[7,-8],[7,8],[2,8]],                  // left 6-yard
+    [[93,-8],[98,-8],[98,8],[93,8]],              // right 6-yard
+    [[2,-8],[0,-8],[0,8],[2,8]],                  // left goal
+    [[98,-8],[100,-8],[100,8],[98,8]],            // right goal
   ];
 
-  // sort players by depth (far = low z = small y world → draw first)
   const sorted = [...ppos].sort((a,b)=>a.y-b.y);
 
   return(
     <div className="relative w-full rounded-2xl overflow-hidden border border-[#1a1a2a]"
-      style={{paddingBottom:'56.25%', background:'#1a1a2a'}}>
+      style={{paddingBottom:'56.25%', background:'#060810'}}>
       <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100"
         preserveAspectRatio="xMidYMid meet">
-
-        {/* Sky / stadium */}
         <defs>
-          <radialGradient id="pitch" cx="50%" cy="50%">
-            <stop offset="0%" stopColor="#2d8a2d"/>
-            <stop offset="100%" stopColor="#1e5c1e"/>
+          {/* stadium lights gradient */}
+          <radialGradient id="stadLight" cx="50%" cy="30%" r="75%">
+            <stop offset="0%"   stopColor="#3aaa3a" stopOpacity="1"/>
+            <stop offset="60%"  stopColor="#267a26" stopOpacity="1"/>
+            <stop offset="100%" stopColor="#174d17" stopOpacity="1"/>
           </radialGradient>
-          <filter id="vignette">
-            <feFlood floodColor="black" result="flood"/>
-            <feComposite in="flood" in2="SourceGraphic" operator="in" result="masked"/>
-            <feGaussianBlur in="masked" stdDeviation="8"/>
-            <feComposite in="SourceGraphic" in2="masked" operator="over"/>
-          </filter>
-          <filter id="grain">
-            <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
-            <feColorMatrix type="saturate" values="0"/>
-            <feBlend in="SourceGraphic" mode="multiply" result="blend"/>
-            <feComposite in="blend" in2="SourceGraphic" operator="in"/>
-          </filter>
+          {/* vignette */}
+          <radialGradient id="vg" cx="50%" cy="55%" r="65%">
+            <stop offset="45%" stopColor="transparent"/>
+            <stop offset="100%" stopColor="rgba(0,0,0,0.7)"/>
+          </radialGradient>
+          {/* crowd gradient */}
+          <linearGradient id="standG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"  stopColor="#0d0d18"/>
+            <stop offset="100%" stopColor="#181828"/>
+          </linearGradient>
         </defs>
 
-        {/* Stands */}
-        <rect x="0" y="0" width="100" height="28" fill="#1a1a2a"/>
-        {/* Crowd dots */}
-        {Array.from({length:120},(_,i)=>(
-          <circle key={i} cx={(i*3.7)%100} cy={2+Math.floor(i/27)*5+(i%3)*1.5}
-            r="0.9" fill={['#ef4444','#3b82f6','#f59e0b','#ffffff','#6366f1'][i%5]} opacity="0.7"/>
-        ))}
-        {/* Stand rail */}
-        <rect x="0" y="26" width="100" height="1.2" fill="#444" opacity="0.8"/>
+        {/* ── SKY / UPPER STAND ── */}
+        <rect x="0" y="0" width="100" height="32" fill="url(#standG)"/>
 
-        {/* Pitch surface */}
-        <ellipse cx="50" cy="70" rx="62" ry="45" fill="url(#pitch)"/>
-        {/* Stripes */}
-        {Array.from({length:8},(_,i)=>(
-          <ellipse key={i} cx="50" cy="70" rx={62-i*7} ry={45-i*5}
-            fill="none" stroke={i%2===0?'#2d8a2d':'#267026'} strokeWidth="4"/>
-        ))}
+        {/* stadium arch lights */}
+        <ellipse cx="20" cy="2" rx="4" ry="2" fill="#fffbe0" opacity="0.12"/>
+        <ellipse cx="50" cy="1" rx="5" ry="2" fill="#fffbe0" opacity="0.15"/>
+        <ellipse cx="80" cy="2" rx="4" ry="2" fill="#fffbe0" opacity="0.12"/>
 
-        {/* Pitch lines */}
-        {lines.map((pts,li)=>(
-          <polyline key={li}
-            points={pts.map(([wx,wy])=>projP(wx,wy)).join(' ')}
-            fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="0.5"/>
-        ))}
-        {/* Center circle */}
-        {Array.from({length:24},(_,i)=>{
-          const a1=i/24*Math.PI*2, a2=(i+1)/24*Math.PI*2;
-          const r=10;
+        {/* crowd — layered rows */}
+        {Array.from({length:200},(_,i)=>{
+          const row = Math.floor(i/40);
+          const col = i % 40;
+          const colors=['#ef4444','#3b82f6','#f59e0b','#ffffff','#6366f1','#10b981','#f43f5e','#8b5cf6'];
           return(
-            <line key={i}
-              x1={projP(50+Math.cos(a1)*r, Math.sin(a1)*r*0.45).split(',')[0]}
-              y1={projP(50+Math.cos(a1)*r, Math.sin(a1)*r*0.45).split(',')[1]}
-              x2={projP(50+Math.cos(a2)*r, Math.sin(a2)*r*0.45).split(',')[0]}
-              y2={projP(50+Math.cos(a2)*r, Math.sin(a2)*r*0.45).split(',')[1]}
-              stroke="rgba(255,255,255,0.8)" strokeWidth="0.5"/>
+            <circle key={i}
+              cx={col*2.55+1.2+(row%2)*1.2}
+              cy={3+row*4.2}
+              r="1.1"
+              fill={colors[(i*7+row*3)%colors.length]}
+              opacity={0.55+row*0.05}/>
           );
         })}
 
-        {/* Players (sorted back-to-front) */}
+        {/* stand railing */}
+        <rect x="0" y="23.5" width="100" height="1.5" fill="#2a2a3a"/>
+        <rect x="0" y="24.8" width="100" height="0.8" fill="#444" opacity="0.6"/>
+
+        {/* ── PITCH SURFACE ── */}
+        {/* base */}
+        <rect x="0" y="24" width="100" height="76" fill="#1e6e1e"/>
+        {/* mowing stripes — horizontal bands */}
+        {Array.from({length:10},(_,i)=>(
+          <rect key={i} x="0" y={24+i*7.6} width="100" height="3.8"
+            fill={i%2===0?'#226e22':'#1e641e'} opacity="0.9"/>
+        ))}
+        {/* stadium lighting overlay */}
+        <ellipse cx="50" cy="65" rx="58" ry="40" fill="url(#stadLight)" opacity="0.35"/>
+
+        {/* ── PITCH LINES (projected) ── */}
+        {pitchLines.map((pts,li)=>(
+          <polyline key={li}
+            points={pts.map(([wx,wy])=>projP(wx,wy)).join(' ')}
+            fill="none" stroke="rgba(255,255,255,0.88)" strokeWidth="0.45"/>
+        ))}
+
+        {/* center spot */}
+        {(()=>{const p=project(50,0,camX);return<circle cx={p.sx} cy={p.sy} r="0.4" fill="white" opacity="0.8"/>})()}
+
+        {/* center circle */}
+        {Array.from({length:32},(_,i)=>{
+          const a1=i/32*Math.PI*2, a2=(i+1)/32*Math.PI*2;
+          const r=10, rx=0.45;
+          const p1=project(50+Math.cos(a1)*r,Math.sin(a1)*r*rx,camX);
+          const p2=project(50+Math.cos(a2)*r,Math.sin(a2)*r*rx,camX);
+          return<line key={i} x1={p1.sx} y1={p1.sy} x2={p2.sx} y2={p2.sy}
+            stroke="rgba(255,255,255,0.82)" strokeWidth="0.42"/>;
+        })}
+
+        {/* ── PLAYERS (back-to-front depth sort) ── */}
         {sorted.map(p=>{
-          const init=ppos.find(q=>q.id===p.id)!;
-          const isNearest=ppos.indexOf(init)===nearest.current;
-          const bd=Math.hypot(p.x-ball.x,p.y-ball.y);
+          const isNearest = ppos.indexOf(ppos.find(q=>q.id===p.id)!) === nearest.current;
+          const bd = Math.hypot(p.x-ball.x,p.y-ball.y);
           return(
             <PPlayer key={p.id}
               wx={p.x} wy={p.y}
-              color={p.team===0?'#dc2626':'#2563eb'}
-              num={init.nu} name={p.nm}
+              color={p.team===0?'#c8102e':'#003087'}
+              kit2={p.team===0?'#8b0000':'#00205b'}
+              num={p.nu} name={p.nm}
               hasBall={isNearest&&bd<6}
-              camX={camX}/>
+              camX={camX}
+              frame={frame}
+              id={p.id}/>
           );
         })}
 
-        {/* Ball */}
+        {/* ── BALL ── */}
         {(()=>{
-          const {sx,sy,scale}=project(ball.x,ball.y,0,camX);
-          const bs=Math.max(0.5,Math.min(2,scale))*1.8;
+          const {sx,sy,scale}=project(ball.x,ball.y,camX);
+          const bs=Math.max(0.4,Math.min(1.6,scale))*1.9;
+          const spin=(frame*0.08)%(Math.PI*2);
           return(
             <g>
-              <ellipse cx={sx} cy={sy+bs*0.6} rx={bs*0.9} ry={bs*0.3} fill="rgba(0,0,0,0.3)"/>
-              <circle cx={sx} cy={sy} r={bs} fill="white" stroke="#444" strokeWidth="0.4"/>
-              <path d={`M${sx-bs*0.4},${sy-bs*0.3} Q${sx},${sy-bs*0.9} ${sx+bs*0.4},${sy-bs*0.3}`}
-                fill="none" stroke="#888" strokeWidth="0.3"/>
+              <ellipse cx={sx} cy={sy+bs*0.5} rx={bs*1.1} ry={bs*0.35} fill="rgba(0,0,0,0.32)"/>
+              <circle cx={sx} cy={sy} r={bs} fill="white" stroke="#444" strokeWidth="0.35"/>
+              {/* spin pattern */}
+              <path d={`M${sx+Math.cos(spin)*bs*0.4},${sy+Math.sin(spin)*bs*0.4} Q${sx},${sy} ${sx+Math.cos(spin+2)*bs*0.5},${sy+Math.sin(spin+2)*bs*0.5}`}
+                fill="none" stroke="#1a1a1a" strokeWidth="0.45" opacity="0.7"/>
+              <circle cx={sx} cy={sy} r={bs*0.35} fill="#1a1a1a" opacity="0.4"/>
             </g>
           );
         })()}
 
-        {/* Vignette */}
-        <rect x="0" y="0" width="100" height="100"
-          fill="radial-gradient(circle,transparent 40%,black 100%)" opacity="0.0"/>
-        <radialGradient id="vg" cx="50%" cy="50%" r="70%">
-          <stop offset="50%" stopColor="transparent"/>
-          <stop offset="100%" stopColor="rgba(0,0,0,0.55)"/>
-        </radialGradient>
+        {/* ── VIGNETTE ── */}
         <rect x="0" y="0" width="100" height="100" fill="url(#vg)"/>
 
-        {/* Film grain overlay */}
-        {Array.from({length:40},(_,i)=>(
-          <rect key={i}
-            x={(i*17+frm.current*3)%100} y={(i*23+frm.current*2)%100}
-            width="1" height="1" fill="white"
-            opacity={0.02+Math.random()*0.04}/>
-        ))}
+        {/* ── FILM GRAIN ── */}
+        <rect x="0" y="0" width="100" height="100"
+          fill="transparent"
+          style={{
+            backgroundImage:'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\' opacity=\'0.04\'/%3E%3C/svg%3E")',
+          }}
+          opacity="0.35"/>
       </svg>
 
-      {/* ── TV broadcast overlays ── */}
-      {/* Top score bar */}
-      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-center pt-2 pointer-events-none">
-        <div className="flex items-center bg-black/85 backdrop-blur-sm rounded-b-xl overflow-hidden shadow-xl">
-          <div className="flex items-center gap-2 px-4 py-2 bg-red-700">
-            <span className="text-white font-black text-sm">{match.homeTeam.emoji}</span>
-            <span className="text-white font-black text-sm">{match.homeTeam.shortName}</span>
+      {/* ── TV BROADCAST OVERLAYS ── */}
+      {/* Score bar */}
+      <div className="absolute top-0 left-0 right-0 z-20 flex justify-center pointer-events-none">
+        <div className="flex items-stretch overflow-hidden rounded-b-2xl shadow-2xl border border-white/10"
+          style={{backdropFilter:'blur(6px)'}}>
+          <div className="flex items-center gap-2 px-4 py-2 bg-[#c8102e]">
+            <span className="text-white text-lg">{match.homeTeam.emoji}</span>
+            <span className="text-white font-black text-sm tracking-wide">{match.homeTeam.shortName}</span>
           </div>
-          <div className="px-5 py-2 bg-black/90">
-            <span className="text-white font-black text-2xl tabular-nums tracking-widest">
-              {homeScore} – {awayScore}
+          <div className="flex items-center px-5 py-1 bg-black/90">
+            <span className="text-white font-black text-3xl tabular-nums tracking-widest">
+              {homeScore}&nbsp;–&nbsp;{awayScore}
             </span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-blue-700">
-            <span className="text-white font-black text-sm">{match.awayTeam.shortName}</span>
-            <span className="text-white font-black text-sm">{match.awayTeam.emoji}</span>
+          <div className="flex items-center gap-2 px-4 py-2 bg-[#003087]">
+            <span className="text-white font-black text-sm tracking-wide">{match.awayTeam.shortName}</span>
+            <span className="text-white text-lg">{match.awayTeam.emoji}</span>
           </div>
         </div>
       </div>
 
-      {/* Bottom bar — broadcast style */}
+      {/* Bottom broadcast bar */}
       <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none">
         <div className="flex items-end justify-between px-3 pb-2">
-          {/* Live + minute */}
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-black px-3 py-1.5 rounded-lg shadow-lg">
               <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse inline-block"/>
               LIVE
             </div>
-            <div className="bg-black/80 text-white text-xs font-black px-3 py-1.5 rounded-lg">
+            <div className="bg-black/85 text-white text-xs font-black px-3 py-1.5 rounded-lg">
               {minute}'
             </div>
           </div>
-          {/* Competition */}
           <div className="bg-black/75 text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg">
             {match.competitionEmoji} {match.competition}
           </div>
         </div>
-        {/* Ticker */}
-        <div className="bg-[#6c63ff]/90 text-white text-[11px] font-bold px-3 py-1 flex items-center gap-2 overflow-hidden">
+        {/* ticker strip */}
+        <div className="bg-[#6c63ff]/90 text-white text-[11px] font-bold px-3 py-1 flex items-center gap-2">
           <span className="flex-shrink-0">⚽ SPORT TV</span>
-          <span className="opacity-50">|</span>
+          <span className="opacity-40">│</span>
           <span className="truncate">{match.homeTeam.name} vs {match.awayTeam.name} · {match.venue}</span>
         </div>
       </div>
@@ -346,12 +475,12 @@ function LivePitch({ match, playing }:{match:typeof matches[0]; playing:boolean}
         </div>
       )}
 
-      {/* Paused */}
+      {/* Paused overlay */}
       {!playing&&(
-        <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-30 rounded-2xl">
+        <div className="absolute inset-0 bg-black/75 flex items-center justify-center z-30 rounded-2xl">
           <div className="text-white text-center">
-            <Play size={64} className="mx-auto mb-3 opacity-90"/>
-            <p className="text-base font-bold opacity-80">Drücke Play</p>
+            <Play size={60} className="mx-auto mb-3 opacity-90"/>
+            <p className="text-sm font-bold opacity-70">Drücke Play</p>
           </div>
         </div>
       )}
@@ -410,7 +539,7 @@ export default function LiveAnsehen() {
         </div>
         <div>
           <h1 className="text-2xl font-black text-white">Live ansehen</h1>
-          <p className="text-slate-500 text-sm">Kamera-Perspektive · Spieler mit Namen · Chat</p>
+          <p className="text-slate-500 text-sm">TV-Kamera · Echte Spieler-Figuren · Chat</p>
         </div>
         <div className="ml-auto text-amber-400 font-bold text-sm">🪙 {state.coins}</div>
       </div>
