@@ -29,7 +29,7 @@ function project(wx:number,wy:number,camX:number,W:number,H:number){
   return { sx, sy, scale };
 }
 
-/* ── Draw TV-broadcast player: realistic human silhouette at camera distance ── */
+/* ── Draw player: clean realistic human at TV-broadcast scale ── */
 function drawPlayer(
   ctx: CanvasRenderingContext2D,
   px: number, py: number, scale: number,
@@ -37,208 +37,243 @@ function drawPlayer(
   num: string, name: string,
   phase: number, _hasBall: boolean, isGK: boolean
 ) {
-  const h = 26 * scale;   // total height in pixels
-  const lf = Math.sin(phase);   // leg swing factor -1..1
-  const af = Math.cos(phase);   // arm swing factor
+  /* Total figure height. At scale=1 (nearest player) ≈ 32px.
+     At scale=0.4 (far player) ≈ 13px — just like real TV broadcast. */
+  const H = 32 * scale;
+
+  /* Running cycle */
+  const s  = Math.sin(phase);          // -1 … 1
+  const c  = Math.cos(phase);
+  /* Leg angles in radians */
+  const LA =  s * 0.45;   // left leg forward/back
+  const RA = -s * 0.45;   // right leg (opposite)
+  const AA =  c * 0.35;   // arm swing
 
   ctx.save();
   ctx.translate(px, py);
 
-  // ── SHADOW (angled, perspective-correct) ──
+  /* ── GROUND SHADOW ── */
   ctx.save();
-  ctx.globalAlpha = 0.22;
+  ctx.globalAlpha = 0.28;
   ctx.fillStyle = '#000';
   ctx.beginPath();
-  ctx.ellipse(h*0.06, h*0.48, h*0.26, h*0.055, 0.15, 0, Math.PI * 2);
+  ctx.ellipse(H*0.04, H*0.5, H*0.24, H*0.052, 0.12, 0, Math.PI*2);
   ctx.fill();
   ctx.restore();
 
-  // ── BACK LEG ──
-  const blLean = lf * 0.38;
-  ctx.save();
-  ctx.translate(h*0.04, h*0.14);
-  ctx.rotate(-blLean);
-  // thigh
-  ctx.fillStyle = isGK ? '#92400e' : '#0f172a';
-  ctx.beginPath();
-  ctx.roundRect(-h*0.055, 0, h*0.11, h*0.2, h*0.04);
-  ctx.fill();
-  // knee bend
-  ctx.save();
-  ctx.translate(0, h*0.2);
-  ctx.rotate(blLean * 1.2);
-  // shin
-  ctx.fillStyle = '#111827';
-  ctx.beginPath();
-  ctx.roundRect(-h*0.045, 0, h*0.09, h*0.18, h*0.035);
-  ctx.fill();
-  // sock
-  ctx.fillStyle = 'rgba(240,240,240,0.92)';
-  ctx.beginPath();
-  ctx.roundRect(-h*0.045, h*0.1, h*0.09, h*0.08, h*0.02);
-  ctx.fill();
-  // boot
-  ctx.fillStyle = '#0a0a0a';
-  ctx.beginPath();
-  ctx.ellipse(h*0.01, h*0.19, h*0.085, h*0.034, 0.25, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-  ctx.restore();
+  /* helper: draw one leg (thigh + shin + sock + boot) */
+  function drawLeg(ox: number, thighAngle: number, shinBend: number, col: string) {
+    ctx.save();
+    ctx.translate(ox, H*0.13);
 
-  // ── FRONT LEG ──
-  const flLean = -lf * 0.38;
-  ctx.save();
-  ctx.translate(-h*0.04, h*0.14);
-  ctx.rotate(-flLean);
-  ctx.fillStyle = isGK ? '#b45309' : '#1e293b';
-  ctx.beginPath();
-  ctx.roundRect(-h*0.06, 0, h*0.12, h*0.2, h*0.04);
-  ctx.fill();
-  ctx.save();
-  ctx.translate(0, h*0.2);
-  ctx.rotate(flLean * 1.2);
-  ctx.fillStyle = '#1f2937';
-  ctx.beginPath();
-  ctx.roundRect(-h*0.05, 0, h*0.1, h*0.18, h*0.035);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(248,248,248,0.95)';
-  ctx.beginPath();
-  ctx.roundRect(-h*0.05, h*0.1, h*0.1, h*0.08, h*0.02);
-  ctx.fill();
-  ctx.fillStyle = '#050505';
-  ctx.beginPath();
-  ctx.ellipse(-h*0.01, h*0.19, h*0.092, h*0.036, -0.25, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-  ctx.restore();
+    /* thigh */
+    ctx.save();
+    ctx.rotate(thighAngle);
+    const thighLen = H*0.22;
+    const tw = H*0.072;
+    const tg = ctx.createLinearGradient(-tw, 0, tw, thighLen);
+    tg.addColorStop(0, lighten(col, 8));
+    tg.addColorStop(1, darken(col, 18));
+    ctx.fillStyle = tg;
+    ctx.beginPath();
+    ctx.moveTo(-tw*0.7, 0);
+    ctx.quadraticCurveTo(-tw, thighLen*0.5, -tw*0.6, thighLen);
+    ctx.quadraticCurveTo(0, thighLen*1.05, tw*0.6, thighLen);
+    ctx.quadraticCurveTo(tw, thighLen*0.5, tw*0.7, 0);
+    ctx.closePath();
+    ctx.fill();
 
-  // ── SHORTS ──
-  const sg = ctx.createLinearGradient(-h*0.16, h*0.1, h*0.1, h*0.24);
-  sg.addColorStop(0, lighten(kitShorts, 12));
-  sg.addColorStop(1, darken(kitShorts, 22));
+    /* knee joint → shin */
+    ctx.translate(0, thighLen);
+    ctx.rotate(shinBend);
+    const shinLen = H*0.2;
+    const sw = H*0.058;
+    ctx.fillStyle = darken(col, 22);
+    ctx.beginPath();
+    ctx.moveTo(-sw*0.7, 0);
+    ctx.quadraticCurveTo(-sw, shinLen*0.5, -sw*0.5, shinLen);
+    ctx.quadraticCurveTo(0, shinLen*1.04, sw*0.5, shinLen);
+    ctx.quadraticCurveTo(sw, shinLen*0.5, sw*0.7, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    /* sock (white top of shin) */
+    ctx.fillStyle = 'rgba(245,245,245,0.92)';
+    ctx.beginPath();
+    ctx.roundRect(-sw*0.72, shinLen*0.52, sw*1.44, shinLen*0.38, sw*0.3);
+    ctx.fill();
+
+    /* boot */
+    const bg = ctx.createRadialGradient(-sw*0.2, shinLen*0.95, 0, 0, shinLen*0.9, sw*1.2);
+    bg.addColorStop(0, '#2a2a2a');
+    bg.addColorStop(1, '#060606');
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.ellipse(sw*0.05, shinLen*0.96, sw*1.15, sw*0.42, 0.18, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.restore(); // shin
+    ctx.restore(); // leg translate
+  }
+
+  /* Draw back leg first (lower z-order) */
+  const backThigh = isGK ? RA*0.5 : RA;
+  const backShin  = backThigh < 0 ? backThigh * 0.7 : 0;
+  drawLeg(H*0.055, backThigh, backShin, isGK ? '#78350f' : '#0f172a');
+
+  /* ── SHORTS ── */
+  const sg = ctx.createLinearGradient(-H*0.17, H*0.1, H*0.1, H*0.25);
+  sg.addColorStop(0, lighten(kitShorts, 14));
+  sg.addColorStop(1, darken(kitShorts, 24));
   ctx.fillStyle = sg;
   ctx.beginPath();
-  ctx.roundRect(-h*0.16, h*0.1, h*0.32, h*0.13, h*0.04);
+  ctx.moveTo(-H*0.17, H*0.1);
+  ctx.bezierCurveTo(-H*0.19, H*0.17, -H*0.16, H*0.24, -H*0.1, H*0.26);
+  ctx.lineTo(H*0.1, H*0.26);
+  ctx.bezierCurveTo(H*0.16, H*0.24, H*0.19, H*0.17, H*0.17, H*0.1);
+  ctx.closePath();
   ctx.fill();
 
-  // ── JERSEY (torso) — proper human shape ──
-  const jg = ctx.createLinearGradient(-h*0.18, -h*0.06, h*0.09, h*0.15);
-  jg.addColorStop(0, lighten(color, 28));
-  jg.addColorStop(0.35, lighten(color, 8));
-  jg.addColorStop(0.7, color);
-  jg.addColorStop(1, darken(color, 32));
+  /* ── JERSEY / TORSO ──
+     Proper shoulder-waist-hip silhouette */
+  const jg = ctx.createLinearGradient(-H*0.2, -H*0.12, H*0.12, H*0.18);
+  jg.addColorStop(0,   lighten(color, 32));
+  jg.addColorStop(0.3, lighten(color, 10));
+  jg.addColorStop(0.65, color);
+  jg.addColorStop(1,   darken(color, 36));
   ctx.fillStyle = jg;
   ctx.beginPath();
-  ctx.moveTo(-h*0.04, -h*0.12);                    // collar L
-  ctx.bezierCurveTo(-h*0.14, -h*0.1, -h*0.2, -h*0.02, -h*0.19, h*0.1);
-  ctx.lineTo(-h*0.16, h*0.13);
-  ctx.lineTo(h*0.16, h*0.13);
-  ctx.lineTo(h*0.19, h*0.1);
-  ctx.bezierCurveTo(h*0.2, -h*0.02, h*0.14, -h*0.1, h*0.04, -h*0.12);  // collar R
-  ctx.bezierCurveTo(h*0.02, -h*0.14, -h*0.02, -h*0.14, -h*0.04, -h*0.12);
+  /* left shoulder */
+  ctx.moveTo(-H*0.22, -H*0.12);
+  /* left side curve down to waist */
+  ctx.bezierCurveTo(-H*0.26, -H*0.04, -H*0.24, H*0.06, -H*0.18, H*0.12);
+  ctx.lineTo(-H*0.14, H*0.26);
+  ctx.lineTo( H*0.14, H*0.26);
+  ctx.lineTo( H*0.18, H*0.12);
+  /* right side curve up to shoulder */
+  ctx.bezierCurveTo(H*0.24, H*0.06, H*0.26, -H*0.04, H*0.22, -H*0.12);
+  /* collar */
+  ctx.bezierCurveTo(H*0.14, -H*0.18, H*0.06, -H*0.2, 0, -H*0.2);
+  ctx.bezierCurveTo(-H*0.06, -H*0.2, -H*0.14, -H*0.18, -H*0.22, -H*0.12);
   ctx.fill();
 
-  // jersey sheen (stadium lights from above)
+  /* jersey highlight (stadium light from above-left) */
   ctx.save();
-  ctx.globalAlpha = 0.11;
-  const sh = ctx.createLinearGradient(-h*0.14, -h*0.1, -h*0.05, h*0.08);
-  sh.addColorStop(0, '#fff');
-  sh.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = sh;
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = '#fff';
   ctx.beginPath();
-  ctx.moveTo(-h*0.04, -h*0.12);
-  ctx.bezierCurveTo(-h*0.14, -h*0.1, -h*0.18, -h*0.02, -h*0.15, h*0.06);
-  ctx.lineTo(-h*0.04, h*0.06);
-  ctx.bezierCurveTo(-h*0.04, -h*0.05, -h*0.02, -h*0.1, -h*0.04, -h*0.12);
+  ctx.moveTo(-H*0.2, -H*0.12);
+  ctx.bezierCurveTo(-H*0.25, -H*0.04, -H*0.22, H*0.06, -H*0.16, H*0.1);
+  ctx.lineTo(-H*0.06, H*0.1);
+  ctx.bezierCurveTo(-H*0.08, -H*0.02, -H*0.06, -H*0.14, -H*0.05, -H*0.19);
+  ctx.bezierCurveTo(-H*0.1, -H*0.18, -H*0.16, -H*0.16, -H*0.2, -H*0.12);
   ctx.fill();
   ctx.restore();
 
-  // number
-  ctx.fillStyle = 'rgba(255,255,255,0.88)';
-  ctx.font = `bold ${Math.max(4, h*0.15)}px Arial,sans-serif`;
+  /* shirt number */
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.font = `bold ${Math.max(5, H*0.17)}px Arial,sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(num, 0, h*0.02);
+  ctx.fillText(num, 0, H*0.04);
 
-  // ── LEFT ARM ──
-  ctx.save();
-  ctx.translate(-h*0.2, -h*0.04);
-  ctx.rotate(af * 0.32);
-  ctx.fillStyle = darken(color, 15);
-  ctx.beginPath();
-  ctx.roundRect(-h*0.06, 0, h*0.065, h*0.17, h*0.025);
-  ctx.fill();
-  // forearm
-  ctx.translate(0, h*0.17);
-  ctx.rotate(af * 0.15);
-  ctx.fillStyle = skin;
-  ctx.beginPath();
-  ctx.roundRect(-h*0.055, 0, h*0.058, h*0.12, h*0.022);
-  ctx.fill();
-  ctx.restore();
+  /* ── ARMS ── */
+  function drawArm(side: number, angle: number) {
+    ctx.save();
+    ctx.translate(side * H*0.22, -H*0.1);
+    ctx.rotate(angle);
+    const aw = H*0.068, al = H*0.18;
+    /* upper arm (jersey color) */
+    const ag = ctx.createLinearGradient(0, 0, aw, al);
+    ag.addColorStop(0, lighten(color, 6));
+    ag.addColorStop(1, darken(color, 20));
+    ctx.fillStyle = ag;
+    ctx.beginPath();
+    ctx.roundRect(side>0 ? 0 : -aw, 0, aw, al, aw*0.4);
+    ctx.fill();
+    /* forearm (skin) */
+    ctx.translate(0, al);
+    ctx.rotate(angle * 0.25);
+    const fw = H*0.056, fl = H*0.14;
+    const fg = ctx.createLinearGradient(0, 0, fw, fl);
+    fg.addColorStop(0, lighten(skin, 10));
+    fg.addColorStop(1, darken(skin, 15));
+    ctx.fillStyle = fg;
+    ctx.beginPath();
+    ctx.roundRect(side>0 ? 0 : -fw, 0, fw, fl, fw*0.4);
+    ctx.fill();
+    ctx.restore();
+  }
+  drawArm(-1, -AA);
+  drawArm( 1,  AA);
 
-  // ── RIGHT ARM ──
-  ctx.save();
-  ctx.translate(h*0.2, -h*0.04);
-  ctx.rotate(-af * 0.32);
-  ctx.fillStyle = darken(color, 15);
-  ctx.beginPath();
-  ctx.roundRect(-h*0.005, 0, h*0.065, h*0.17, h*0.025);
-  ctx.fill();
-  ctx.translate(0, h*0.17);
-  ctx.rotate(-af * 0.15);
-  ctx.fillStyle = skin;
-  ctx.beginPath();
-  ctx.roundRect(-h*0.005, 0, h*0.058, h*0.12, h*0.022);
-  ctx.fill();
-  ctx.restore();
+  /* ── FRONT LEG ── */
+  const frontThigh = isGK ? LA*0.5 : LA;
+  const frontShin  = frontThigh > 0 ? -frontThigh * 0.6 : 0;
+  drawLeg(-H*0.055, frontThigh, frontShin, isGK ? '#92400e' : '#1e293b');
 
-  // ── NECK ──
-  ctx.fillStyle = skin;
+  /* ── NECK ── */
+  const ng = ctx.createLinearGradient(-H*0.06, -H*0.22, H*0.04, -H*0.12);
+  ng.addColorStop(0, lighten(skin, 8));
+  ng.addColorStop(1, darken(skin, 10));
+  ctx.fillStyle = ng;
   ctx.beginPath();
-  ctx.roundRect(-h*0.055, -h*0.15, h*0.11, h*0.05, h*0.025);
+  ctx.roundRect(-H*0.058, -H*0.22, H*0.116, H*0.1, H*0.025);
   ctx.fill();
 
-  // ── HEAD — proper sphere with stadium lighting ──
-  const hRad = h * 0.13;
+  /* ── HEAD ── */
+  const hr = H*0.135;
+  const hy = -H*0.32;
   const hg = ctx.createRadialGradient(
-    -hRad * 0.3, -h*0.24 - hRad * 0.35, hRad * 0.05,
-     0,           -h*0.24,               hRad
+    -hr*0.28, hy - hr*0.3, hr*0.04,
+     hr*0.1,  hy,          hr
   );
-  hg.addColorStop(0, lighten(skin, 22));
-  hg.addColorStop(0.55, skin);
-  hg.addColorStop(1, darken(skin, 28));
+  hg.addColorStop(0, lighten(skin, 26));
+  hg.addColorStop(0.5, lighten(skin, 6));
+  hg.addColorStop(1, darken(skin, 26));
   ctx.fillStyle = hg;
   ctx.beginPath();
-  ctx.ellipse(0, -h*0.24, hRad, hRad * 1.08, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, hy, hr, hr*1.12, 0, 0, Math.PI*2);
   ctx.fill();
 
-  // hair (dark cap)
-  ctx.fillStyle = '#150a02';
+  /* hair */
+  ctx.fillStyle = '#12080100';
+  const hairColors = ['#1a0a02','#0d0d0d','#3d2008','#1a1008','#2a1a0a'];
+  ctx.fillStyle = hairColors[Math.abs(Math.round(px*0.17+py*0.13)) % hairColors.length];
   ctx.beginPath();
-  ctx.ellipse(0, -h*0.3, hRad * 1.02, hRad * 0.62, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, hy - hr*0.55, hr*1.05, hr*0.62, 0, 0, Math.PI*2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(-hRad*0.8, -h*0.24, hRad*0.4, hRad*0.72, -0.3, 0, Math.PI * 2);
+  ctx.ellipse(-hr*0.82, hy - hr*0.1, hr*0.38, hr*0.7, -0.35, 0, Math.PI*2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(hRad*0.8, -h*0.24, hRad*0.4, hRad*0.72, 0.3, 0, Math.PI * 2);
+  ctx.ellipse( hr*0.82, hy - hr*0.1, hr*0.38, hr*0.7,  0.35, 0, Math.PI*2);
   ctx.fill();
 
-  // ── NAME TAG (broadcast style) ──
-  const tw = Math.max(h * 0.85, 28);
-  const th = Math.max(h * 0.17, 9);
-  const ty = h * 0.5;
-  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  /* face: subtle eyes + shadow under brow */
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
   ctx.beginPath();
-  ctx.roundRect(-tw/2, ty, tw, th, 2);
+  ctx.ellipse(-hr*0.3, hy - hr*0.05, hr*0.2, hr*0.08, 0, 0, Math.PI*2);
   ctx.fill();
+  ctx.fillStyle = 'rgba(20,8,2,0.7)';
+  ctx.beginPath(); ctx.ellipse(-hr*0.3, hy - hr*0.05, hr*0.1, hr*0.1, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( hr*0.22, hy - hr*0.05, hr*0.1, hr*0.1, 0, 0, Math.PI*2); ctx.fill();
+
+  /* ── NAME TAG ── */
+  const tw = Math.max(H*0.9, 26);
+  const th = Math.max(H*0.165, 8);
+  const ty = H*0.52;
+  ctx.fillStyle = 'rgba(5,5,15,0.78)';
+  ctx.beginPath();
+  ctx.roundRect(-tw/2, ty, tw, th, 2.5);
+  ctx.fill();
+  /* colored left stripe */
   ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.roundRect(-tw/2, ty, tw*0.26, th, [2,0,0,2]);
+  ctx.roundRect(-tw/2, ty, tw*0.24, th, [2.5, 0, 0, 2.5]);
   ctx.fill();
   ctx.fillStyle = '#fff';
-  ctx.font = `bold ${Math.max(4, th*0.68)}px Arial,sans-serif`;
+  ctx.font = `600 ${Math.max(4.5, th*0.65)}px Arial,sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(name, tw*0.02, ty + th/2);
@@ -584,8 +619,9 @@ function LivePitch({ match, playing }:{match:typeof matches[0]; playing:boolean}
         return{...p,x,y,dx:ndx,dy:ndy};
       });
 
-      camXRef.current+=(ballRef.current.x-camXRef.current)*0.035;
-      setCamX(camXRef.current);
+      /* Camera fixed at center — field does not pan */
+      camXRef.current = 50;
+      setCamX(50);
       setBall({...ballRef.current});
 
       if(frm.current%60===0){
