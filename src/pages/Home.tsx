@@ -15,7 +15,7 @@ export default function Home() {
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pb-24 md:pb-8 pt-6">
+    <div className="max-w-2xl mx-auto px-4 pb-safe-nav md:pb-8 pt-6">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-black text-white">Nächste Spiele</h1>

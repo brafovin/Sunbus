@@ -16,7 +16,7 @@ export default function Teams() {
   const leagues = [...new Set(teams.map(t => t.league))];
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pb-24 md:pb-8 pt-6">
+    <div className="max-w-2xl mx-auto px-4 pb-safe-nav md:pb-8 pt-6">
       {selectedTeam && team ? (
         // Team detail view
         <div>

@@ -94,15 +94,18 @@ export default function Navbar() {
         </div>
       </aside>
 
-      {/* Bottom nav for mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#12121a] border-t border-[#22223a] flex">
+      {/* Bottom nav for mobile — with safe area for notch phones */}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-30 glass border-t border-[#22223a] flex"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
         {navItems.map(({ to, label, icon: Icon, badge }) => (
           <NavLink
             key={to}
             to={to}
             end={to === '/'}
             className={({ isActive }) =>
-              `flex-1 flex flex-col items-center py-2 px-1 transition-colors relative
+              `flex-1 flex flex-col items-center py-2 px-0.5 transition-colors relative touch-target
               ${isActive ? 'text-[#6c63ff]' : 'text-slate-500'}`
             }
           >
@@ -114,7 +117,7 @@ export default function Navbar() {
                 </span>
               )}
             </div>
-            <span className="text-[10px] mt-0.5 font-medium">{label}</span>
+            <span className="text-[9px] mt-0.5 font-medium leading-tight text-center">{label}</span>
           </NavLink>
         ))}
       </nav>

@@ -121,7 +121,7 @@ export default function LiveAnsehen() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pb-24 md:pb-8 pt-6">
+    <div className="max-w-6xl mx-auto px-4 pb-safe-nav md:pb-8 pt-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl bg-[#6c63ff]/20 border border-[#6c63ff]/30 flex items-center justify-center">

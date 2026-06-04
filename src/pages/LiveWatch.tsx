@@ -12,7 +12,7 @@ export default function LiveWatch() {
   const current = liveMatches.find(m => m.id === selectedMatch) ?? liveMatches[0];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 pb-24 md:pb-8 pt-6">
+    <div className="max-w-4xl mx-auto px-4 pb-safe-nav md:pb-8 pt-6">
       <div className="mb-5">
         <div className="flex items-center gap-3">
           <Tv size={22} className="text-[#6c63ff]" />

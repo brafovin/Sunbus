@@ -19,7 +19,28 @@ export default {
           600: '#5a52e8',
         }
       },
+      minHeight: {
+        dvh: '100dvh',
+      },
+      height: {
+        dvh: '100dvh',
+      },
+      spacing: {
+        safe: 'env(safe-area-inset-bottom, 0px)',
+      },
     },
   },
   plugins: [],
+  safelist: [
+    'pb-safe-nav',
+    'pb-safe',
+    'pt-safe',
+    'min-h-dvh',
+    'touch-target',
+    'glass',
+    'live-dot',
+    'float-up',
+    'animate-slide-up',
+    'animate-fade-in',
+  ],
 }

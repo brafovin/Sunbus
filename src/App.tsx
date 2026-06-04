@@ -12,10 +12,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <CoinProvider>
-        <div className="min-h-screen bg-[#0a0a0f]">
+        <div className="min-h-dvh bg-[#0a0a0f]">
           <Navbar />
-          {/* Content area — offset by sidebar on md+ */}
-          <main className="md:ml-64 min-h-screen">
+          <main className="md:ml-64 min-h-dvh">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/live" element={<LiveScores />} />
