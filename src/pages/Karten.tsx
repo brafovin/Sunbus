@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Trophy, Star, Zap, Shield, Target, Users, Trash2, Pencil } from 'lucide-react';
 import { useCoins, type PlayerCard } from '../context/CoinContext';
+import { ALL_PLAYERS } from '../data/allPlayers';
 
-const CARDS: PlayerCard[] = [
+const CARDS: PlayerCard[] = ALL_PLAYERS;
+const __OLD = [
   /* ═══════════════════════════════════
      NORMAL  3000–5000
   ═══════════════════════════════════ */
@@ -197,7 +199,8 @@ const CARDS: PlayerCard[] = [
   { id:'c160',name:'Ronaldo C.R.7',   team:'Al-Nassr (Leg.)',teamEmoji:'🔵',  position:'ST', rating:95, pace:86, shooting:95, passing:78, defending:34, rarity:'legend', price:20000, image:'👑' },
   { id:'c161',name:'Messi (Leg.)',    team:'Inter Miami (Leg.)',teamEmoji:'🌸',position:'AM',rating:97, pace:82, shooting:93, passing:97, defending:40, rarity:'legend', price:20000, image:'👑' },
   { id:'c162',name:'Firas Al-Khatib (Leg.)',team:'Syrien (Leg.)',teamEmoji:'🇸🇾',position:'ST',rating:84,pace:72,shooting:86,passing:70,defending:28,rarity:'legend',price:16500,image:'👑' },
-];
+] as PlayerCard[];
+void __OLD;
 
 const RARITY_CONFIG = {
   normal: { label:'Normal',  bg:'from-slate-700 to-slate-900',   border:'border-slate-500',   badge:'bg-slate-600',   glow:'',                         stars:1 },
