@@ -284,6 +284,7 @@ export const ALL_PLAYERS: PlayerCard[] = [
   /* ══════════════════════════════════════════════
      🇸🇾 SYRIEN
   ══════════════════════════════════════════════ */
+  { id:'p221s',name:'Mohammed Al-Salkhadi',team:'Syrien NT',       teamEmoji:'🇸🇾', position:'ST', rating:83, pace:80, shooting:84, passing:70, defending:28, rarity:'rare',   price:5000,  image:'⭐' },
   { id:'p222s',name:'Omar Khrbin',        team:'Syrien NT',        teamEmoji:'🇸🇾', position:'ST', rating:84, pace:82, shooting:86, passing:72, defending:30, rarity:'rare',   price:5500,  image:'⭐' },
   { id:'p223',name:'Omar Al-Soma',       team:'Syrien NT',        teamEmoji:'🇸🇾', position:'ST', rating:81, pace:72, shooting:83, passing:66, defending:28, rarity:'normal', price:3200,  image:'👨' },
   { id:'p224',name:'Firas Al-Khatib',    team:'Syrien NT',        teamEmoji:'🇸🇾', position:'ST', rating:80, pace:70, shooting:82, passing:68, defending:26, rarity:'normal', price:3000,  image:'👨' },
