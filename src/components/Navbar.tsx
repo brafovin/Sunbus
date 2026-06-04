@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Radio, Users, Tv, Gamepad2, ShoppingBag, Download, Trophy } from 'lucide-react';
+import { Home, Radio, Users, Tv, Gamepad2, ShoppingBag, Download, Trophy, Pencil } from 'lucide-react';
 import { matches } from '../data/matches';
 import { useCoins } from '../context/CoinContext';
 import { useEffect, useState } from 'react';
@@ -14,6 +14,7 @@ const navItems = [
   { to: '/spiel', label: 'Spiel', icon: Gamepad2 },
   { to: '/shop', label: 'Shop', icon: ShoppingBag },
   { to: '/karten', label: 'Spielerkarten', icon: Trophy },
+  { to: '/spieler-bauen', label: 'Spieler bauen', icon: Pencil },
 ];
 
 export default function Navbar() {
