@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Radio, Users, Tv } from 'lucide-react';
+import { Home, Radio, Users, Tv, Gamepad2, ShoppingBag } from 'lucide-react';
 import { matches } from '../data/matches';
+import { useCoins } from '../context/CoinContext';
 
 const liveCount = matches.filter(m => m.status === 'live').length;
 
@@ -9,9 +10,13 @@ const navItems = [
   { to: '/live', label: 'Live', icon: Radio, badge: liveCount },
   { to: '/mannschaften', label: 'Mannschaften', icon: Users },
   { to: '/live-ansehen', label: 'Live ansehen', icon: Tv },
+  { to: '/spiel', label: 'Spiel', icon: Gamepad2 },
+  { to: '/shop', label: 'Shop', icon: ShoppingBag },
 ];
 
 export default function Navbar() {
+  const { state } = useCoins();
+
   return (
     <>
       {/* Sidebar for md+ */}
@@ -51,6 +56,10 @@ export default function Navbar() {
           ))}
         </nav>
         <div className="p-4 border-t border-[#22223a]">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <span className="text-amber-400 font-bold text-sm">🪙 {state.coins}</span>
+            <span className="text-slate-600 text-xs">Münzen</span>
+          </div>
           <p className="text-xs text-slate-600 text-center">© 2024 SportLive</p>
         </div>
       </aside>
