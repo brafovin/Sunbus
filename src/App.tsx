@@ -8,6 +8,7 @@ import Spiel from './pages/Spiel';
 import Shop from './pages/Shop';
 import Karten from './pages/Karten';
 import SpielerBauen from './pages/SpielerBauen';
+import SpielerZeichnen from './pages/SpielerZeichnen';
 import { CoinProvider } from './context/CoinContext';
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
               <Route path="/shop" element={<Shop />} />
               <Route path="/karten" element={<Karten />} />
               <Route path="/spieler-bauen" element={<SpielerBauen />} />
+              <Route path="/spieler-zeichnen" element={<SpielerZeichnen />} />
             </Routes>
           </main>
         </div>
