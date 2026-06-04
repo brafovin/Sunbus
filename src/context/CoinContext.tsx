@@ -1,18 +1,37 @@
 import { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
 
+export interface PlayerCard {
+  id: string;
+  name: string;
+  team: string;
+  teamEmoji: string;
+  position: string;
+  rating: number;
+  pace: number;
+  shooting: number;
+  passing: number;
+  defending: number;
+  rarity: 'normal' | 'rare' | 'epic' | 'legend';
+  price: number;
+  image: string; // emoji avatar
+}
+
 interface CoinState {
   coins: number;
   ownedEmojis: string[];
+  ownedCards: string[]; // card ids
 }
 
 type CoinAction =
   | { type: 'ADD_COINS'; amount: number }
   | { type: 'SPEND_COINS'; amount: number }
-  | { type: 'BUY_EMOJI'; emoji: string; price: number };
+  | { type: 'BUY_EMOJI'; emoji: string; price: number }
+  | { type: 'BUY_CARD'; cardId: string; price: number };
 
 const initialState: CoinState = {
   coins: 100,
   ownedEmojis: ['👍', '❤️', '⚽'],
+  ownedCards: [],
 };
 
 function coinReducer(state: CoinState, action: CoinAction): CoinState {
@@ -27,6 +46,13 @@ function coinReducer(state: CoinState, action: CoinAction): CoinState {
         ...state,
         coins: state.coins - action.price,
         ownedEmojis: [...state.ownedEmojis, action.emoji],
+      };
+    case 'BUY_CARD':
+      if (state.coins < action.price || state.ownedCards.includes(action.cardId)) return state;
+      return {
+        ...state,
+        coins: state.coins - action.price,
+        ownedCards: [...state.ownedCards, action.cardId],
       };
     default:
       return state;

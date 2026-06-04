@@ -6,6 +6,7 @@ import Teams from './pages/Teams';
 import LiveAnsehen from './pages/LiveAnsehen';
 import Spiel from './pages/Spiel';
 import Shop from './pages/Shop';
+import Karten from './pages/Karten';
 import { CoinProvider } from './context/CoinContext';
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
               <Route path="/live-ansehen" element={<LiveAnsehen />} />
               <Route path="/spiel" element={<Spiel />} />
               <Route path="/shop" element={<Shop />} />
+              <Route path="/karten" element={<Karten />} />
             </Routes>
           </main>
         </div>
