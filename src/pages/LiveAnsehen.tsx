@@ -17,15 +17,15 @@ const fmt=(d:Date)=>d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit
 /* ── TV camera: side stand, ~40m height ── */
 function project(wx:number,wy:number,camX:number,W:number,H:number){
   /* wx: 0..100 pitch length, wy: -38..38 pitch width */
-  const PITCH_TOP_Y  = H * 0.28;   /* where far touchline appears */
-  const PITCH_BOT_Y  = H * 0.92;   /* where near touchline appears */
+  const PITCH_TOP_Y  = H * 0.30;   /* where far touchline appears */
+  const PITCH_BOT_Y  = H * 0.86;   /* where near touchline appears */
   /* depth: wy=-38 is far (top of screen), wy=38 is near (bottom) */
   const t = (wy + 38) / 76;               /* 0=far, 1=near */
   const sy = PITCH_TOP_Y + t * (PITCH_BOT_Y - PITCH_TOP_Y);
-  const scaleX = 0.55 + t * 0.75;        /* perspective squeeze */
+  const scaleX = 0.45 + t * 0.55;        /* perspective squeeze */
   const rx = (wx - camX) / 100;
   const sx = W/2 + rx * W * scaleX;
-  const scale = 0.35 + t * 1.1;
+  const scale = 0.22 + t * 0.55;
   return { sx, sy, scale };
 }
 
@@ -482,7 +482,7 @@ function LivePitch({ match, playing }:{match:typeof matches[0]; playing:boolean}
         ctx.filter=`blur(${((0.55-scale)*4).toFixed(1)}px)`;
       }
       drawPlayer(
-        ctx, sx, sy, scale*0.82,
+        ctx, sx, sy, scale*0.75,
         p.team===0?'#c8102e':'#003087',
         p.team===0?'#7a0000':'#001560',
         SKINS[p.id%SKINS.length],
@@ -497,28 +497,53 @@ function LivePitch({ match, playing }:{match:typeof matches[0]; playing:boolean}
     /* ── BALL ── */
     {
       const {sx,sy,scale}=pp2(bl.x,bl.y);
-      const br=Math.max(3,scale*9);
+      const br=Math.max(2.5,scale*7);
       const spin=frm.current*0.09%(Math.PI*2);
-      /* shadow */
-      ctx.fillStyle='rgba(0,0,0,0.32)';
-      ctx.beginPath(); ctx.ellipse(sx,sy+br*0.55,br*1.1,br*0.32,0,0,Math.PI*2); ctx.fill();
-      /* ball */
-      const ballGrad=ctx.createRadialGradient(sx-br*0.3,sy-br*0.35,0,sx,sy,br);
+      /* ground shadow */
+      ctx.fillStyle='rgba(0,0,0,0.28)';
+      ctx.beginPath(); ctx.ellipse(sx,sy+br*0.65,br*1.3,br*0.35,0,0,Math.PI*2); ctx.fill();
+      /* ball sphere with 3-D radial gradient */
+      const ballGrad=ctx.createRadialGradient(sx-br*0.32,sy-br*0.38,br*0.05,sx,sy,br);
       ballGrad.addColorStop(0,'#ffffff');
-      ballGrad.addColorStop(0.6,'#e8e8e8');
-      ballGrad.addColorStop(1,'#aaaaaa');
+      ballGrad.addColorStop(0.4,'#f0f0f0');
+      ballGrad.addColorStop(0.75,'#cccccc');
+      ballGrad.addColorStop(1,'#888888');
       ctx.fillStyle=ballGrad;
       ctx.beginPath(); ctx.arc(sx,sy,br,0,Math.PI*2); ctx.fill();
-      /* hex pattern */
-      ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=Math.max(0.5,br*0.12);
-      ctx.globalAlpha=0.55;
+      /* black pentagon patches — classic football pattern */
+      ctx.save();
+      ctx.translate(sx,sy);
+      ctx.rotate(spin);
+      ctx.fillStyle='#111111';
+      /* center patch */
+      ctx.beginPath();
       for(let i=0;i<5;i++){
-        const a=spin+i/5*Math.PI*2;
-        ctx.beginPath();
-        ctx.arc(sx+Math.cos(a)*br*0.45,sy+Math.sin(a)*br*0.45,br*0.22,0,Math.PI*2);
-        ctx.stroke();
+        const a=i/5*Math.PI*2-Math.PI/2;
+        i===0?ctx.moveTo(Math.cos(a)*br*0.32,Math.sin(a)*br*0.32):ctx.lineTo(Math.cos(a)*br*0.32,Math.sin(a)*br*0.32);
       }
-      ctx.globalAlpha=1;
+      ctx.closePath(); ctx.fill();
+      /* surrounding 5 patches */
+      for(let i=0;i<5;i++){
+        const a=i/5*Math.PI*2-Math.PI/2;
+        const px=Math.cos(a)*br*0.62, py=Math.sin(a)*br*0.62;
+        ctx.beginPath();
+        for(let j=0;j<5;j++){
+          const pa=(j/5)*Math.PI*2+a;
+          const qx=px+Math.cos(pa)*br*0.22, qy=py+Math.sin(pa)*br*0.22;
+          j===0?ctx.moveTo(qx,qy):ctx.lineTo(qx,qy);
+        }
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+      /* shine spot */
+      ctx.save();
+      ctx.globalAlpha=0.55;
+      const shine=ctx.createRadialGradient(sx-br*0.3,sy-br*0.35,0,sx-br*0.3,sy-br*0.35,br*0.45);
+      shine.addColorStop(0,'rgba(255,255,255,0.85)');
+      shine.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.fillStyle=shine;
+      ctx.beginPath(); ctx.arc(sx,sy,br,0,Math.PI*2); ctx.fill();
+      ctx.restore();
     }
 
     /* ── VIGNETTE ── */
