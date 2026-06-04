@@ -10,7 +10,7 @@ import { CoinProvider } from './context/CoinContext';
 
 export default function App() {
   return (
-    <BrowserRouter basename="/Sunbus">
+    <BrowserRouter>
       <CoinProvider>
         <div className="min-h-dvh bg-[#0a0a0f]">
           <Navbar />
