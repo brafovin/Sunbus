@@ -201,6 +201,14 @@ export const teams: Team[] = [
   // ── AUSTRALIEN – A-League ─────────────────────────────────────
   { id: 'syd',  name: 'Sydney FC',             shortName: 'SYD', emoji: '🔵',    league: 'A-League',           country: '🇦🇺' },
   { id: 'melt', name: 'Melbourne City',        shortName: 'MLC', emoji: '🔵⚪',  league: 'A-League',           country: '🇦🇺' },
+
+  // ── SYRIEN ────────────────────────────────────────────────────
+  { id: 'alhil_sy', name: 'Al-Hilal Damaskus',    shortName: 'HLD', emoji: '🔵⚪',  league: 'Syrian Premier League', country: '🇸🇾' },
+  { id: 'wahed',    name: 'Al-Wahda SC',           shortName: 'WAH', emoji: '🔴⚪',  league: 'Syrian Premier League', country: '🇸🇾' },
+  { id: 'jais',     name: 'Al-Jaish SC',           shortName: 'JAI', emoji: '🟢⚪',  league: 'Syrian Premier League', country: '🇸🇾' },
+  { id: 'karam',    name: 'Al-Karamah SC',         shortName: 'KAR', emoji: '🔴🟡',  league: 'Syrian Premier League', country: '🇸🇾' },
+  { id: 'majd',     name: 'Al-Majd SC',            shortName: 'MAJ', emoji: '🔵🟡',  league: 'Syrian Premier League', country: '🇸🇾' },
+  { id: 'wathbah',  name: 'Al-Wathbah Homs',       shortName: 'WAT', emoji: '🟢⚫',  league: 'Syrian Premier League', country: '🇸🇾' },
 ];
 
 function getTeam(id: string): Team {
