@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Tv, Send } from 'lucide-react';
 import { useCoins } from '../context/CoinContext';
+import { matches, type Match } from '../data/matches';
 
 const FAKE_USERS = ['MaxFan', 'SportKing', 'GoalHunter', 'BayernFan', 'BVBler'];
 
@@ -52,6 +53,10 @@ let floatId = 1;
 
 export default function LiveAnsehen() {
   const { state, dispatch } = useCoins();
+
+  const liveMatches = matches.filter(m => m.status === 'live');
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(liveMatches[0] ?? null);
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: msgId++, user: 'SportKing', text: 'Hey Leute! Bereit fürs Spiel? 🔥', time: formatTime(new Date()), isMe: false },
     { id: msgId++, user: 'MaxFan', text: 'Jaaaa! Heute wird gewonnen!', time: formatTime(new Date()), isMe: false },
@@ -137,21 +142,58 @@ export default function LiveAnsehen() {
       <div className="flex flex-col lg:flex-row gap-4">
         {/* Left: Video + reactions */}
         <div className="flex-1 min-w-0">
+          {/* Match selector */}
+          {liveMatches.length > 0 && (
+            <div className="flex gap-2 mb-3 flex-wrap">
+              {liveMatches.map(match => (
+                <button
+                  key={match.id}
+                  onClick={() => setSelectedMatch(match)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold transition-all ${
+                    selectedMatch?.id === match.id
+                      ? 'bg-[#6c63ff] border-[#6c63ff] text-white shadow-lg shadow-[#6c63ff]/20'
+                      : 'bg-[#12121a] border-[#22223a] text-slate-300 hover:border-[#6c63ff]/50'
+                  }`}
+                >
+                  <span className="flex items-center gap-1">
+                    <span>{match.homeTeam.emoji}</span>
+                    <span className="text-xs">{match.homeTeam.shortName}</span>
+                  </span>
+                  <span className="text-xs font-black text-red-400">{match.homeScore}–{match.awayScore}</span>
+                  <span className="flex items-center gap-1">
+                    <span className="text-xs">{match.awayTeam.shortName}</span>
+                    <span>{match.awayTeam.emoji}</span>
+                  </span>
+                  <span className="text-[10px] text-red-400 font-bold ml-1">{match.minute}'</span>
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Video player */}
           <div className="relative rounded-2xl overflow-hidden bg-black border border-[#22223a] mb-4 aspect-video">
-            <iframe
-              className="absolute inset-0 w-full h-full"
-              src="https://www.youtube.com/embed/live_stream?channel=UCsT0YIqwnpJCM-mx7-gSA4Q"
-              title="Live Stream"
-              allow="autoplay"
-              allowFullScreen
-            />
-            <div className="absolute top-3 left-3 z-10 pointer-events-none">
-              <div className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-lg">
-                <span className="w-2 h-2 bg-white rounded-full animate-pulse inline-block" />
-                LIVE
+            {selectedMatch?.streamUrl ? (
+              <iframe
+                className="absolute inset-0 w-full h-full"
+                src={selectedMatch.streamUrl}
+                title={`Live Stream – ${selectedMatch.homeTeam.name} vs ${selectedMatch.awayTeam.name}`}
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                <Tv size={48} className="text-slate-600" />
+                <p className="text-slate-500 font-semibold">Kein Stream verfügbar</p>
               </div>
-            </div>
+            )}
+            {selectedMatch && (
+              <div className="absolute top-3 left-3 z-10 pointer-events-none">
+                <div className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-lg">
+                  <span className="w-2 h-2 bg-white rounded-full animate-pulse inline-block" />
+                  LIVE
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Emoji reactions */}
