@@ -309,6 +309,7 @@ export const ALL_PLAYERS: PlayerCard[] = [
   { id:'p247s',name:'Ghaith Alwan',      team:'Syrien NT',        teamEmoji:'🇸🇾', position:'MF', rating:76, pace:74, shooting:64, passing:74, defending:60, rarity:'normal', price:3000,  image:'👨' },
   { id:'p248s',name:'Bader Al-Din Kaddour',team:'Syrien NT',      teamEmoji:'🇸🇾', position:'RW', rating:75, pace:78, shooting:68, passing:66, defending:34, rarity:'normal', price:3000,  image:'👨' },
   { id:'p249s',name:'Mahmoud Al-Asa',    team:'Syrien NT',        teamEmoji:'🇸🇾', position:'GK', rating:74, pace:44, shooting:14, passing:60, defending:74, rarity:'normal', price:3000,  image:'👨' },
+  { id:'p257s',name:'Elias Hadaya',      team:'Syrien NT',        teamEmoji:'🇸🇾', position:'GK', rating:76, pace:46, shooting:16, passing:64, defending:76, rarity:'normal', price:3000,  image:'👨' },
   { id:'p250s',name:'Firas Mawas',       team:'Syrien NT',        teamEmoji:'🇸🇾', position:'MF', rating:76, pace:76, shooting:66, passing:74, defending:62, rarity:'normal', price:3000,  image:'👨' },
   { id:'p251s',name:'Mahmoud Al-Douri',  team:'Syrien NT',        teamEmoji:'🇸🇾', position:'ST', rating:75, pace:72, shooting:74, passing:58, defending:22, rarity:'normal', price:3000,  image:'👨' },
   { id:'p252s',name:'Junior Sambia',     team:'Syrien NT',        teamEmoji:'🇸🇾', position:'RB', rating:78, pace:84, shooting:52, passing:68, defending:76, rarity:'normal', price:3000,  image:'👨' },
