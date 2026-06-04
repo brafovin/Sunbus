@@ -16,22 +16,34 @@ export interface PlayerCard {
   image: string; // emoji avatar
 }
 
+export interface CustomCard {
+  id: string;
+  name: string;
+  position: string;
+  imageData: string; // base64 PNG
+  createdAt: number;
+}
+
 interface CoinState {
   coins: number;
   ownedEmojis: string[];
   ownedCards: string[]; // card ids
+  customCards: CustomCard[];
 }
 
 type CoinAction =
   | { type: 'ADD_COINS'; amount: number }
   | { type: 'SPEND_COINS'; amount: number }
   | { type: 'BUY_EMOJI'; emoji: string; price: number }
-  | { type: 'BUY_CARD'; cardId: string; price: number };
+  | { type: 'BUY_CARD'; cardId: string; price: number }
+  | { type: 'ADD_CUSTOM_CARD'; card: CustomCard }
+  | { type: 'DELETE_CUSTOM_CARD'; id: string };
 
 const initialState: CoinState = {
   coins: 100,
   ownedEmojis: ['👍', '❤️', '⚽'],
   ownedCards: [],
+  customCards: [],
 };
 
 function coinReducer(state: CoinState, action: CoinAction): CoinState {
@@ -54,6 +66,10 @@ function coinReducer(state: CoinState, action: CoinAction): CoinState {
         coins: state.coins - action.price,
         ownedCards: [...state.ownedCards, action.cardId],
       };
+    case 'ADD_CUSTOM_CARD':
+      return { ...state, customCards: [...state.customCards, action.card] };
+    case 'DELETE_CUSTOM_CARD':
+      return { ...state, customCards: state.customCards.filter(c => c.id !== action.id) };
     default:
       return state;
   }
@@ -72,7 +88,10 @@ export function CoinProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(coinReducer, initialState, () => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved) as CoinState;
+      if (saved) {
+        const parsed = JSON.parse(saved) as CoinState;
+        return { ...initialState, ...parsed };
+      }
     } catch {
       // ignore
     }

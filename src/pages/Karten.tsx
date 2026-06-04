@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trophy, Star, Zap, Shield, Target, Users } from 'lucide-react';
+import { Trophy, Star, Zap, Shield, Target, Users, Trash2, Pencil } from 'lucide-react';
 import { useCoins, type PlayerCard } from '../context/CoinContext';
 
 const CARDS: PlayerCard[] = [
@@ -169,7 +169,7 @@ export default function Karten() {
   const { state, dispatch } = useCoins();
   const [posFilter,  setPosFilter]  = useState('Alle');
   const [rarFilter,  setRarFilter]  = useState<typeof RARITIES[number]>('Alle');
-  const [tab,        setTab]        = useState<'shop'|'sammlung'>('shop');
+  const [tab,        setTab]        = useState<'shop'|'sammlung'|'meine'>('shop');
   const [toast,      setToast]      = useState('');
 
   function showToast(msg:string){ setToast(msg); setTimeout(()=>setToast(''),2500); }
@@ -219,13 +219,13 @@ export default function Karten() {
       </div>
 
       {/* tabs */}
-      <div className="flex gap-2 mb-4">
-        {(['shop','sammlung'] as const).map(t=>(
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {(['shop','sammlung','meine'] as const).map(t=>(
           <button key={t} onClick={()=>setTab(t)}
             className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
               tab===t ? 'bg-[#6c63ff] text-white' : 'bg-[#12121a] border border-[#22223a] text-slate-400 hover:border-[#6c63ff]/40'
             }`}>
-            {t==='shop' ? '🏪 Shop' : `📦 Sammlung (${state.ownedCards.length})`}
+            {t==='shop' ? '🏪 Shop' : t==='sammlung' ? `📦 Sammlung (${state.ownedCards.length})` : `🎨 Meine Figuren (${(state.customCards??[]).length})`}
           </button>
         ))}
       </div>
@@ -245,47 +245,98 @@ export default function Karten() {
         ))}
       </div>
 
-      {/* filters */}
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Shield size={12} className="text-slate-500"/>
-          {POSITIONS.map(p=>(
-            <button key={p} onClick={()=>setPosFilter(p)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 ${
-                posFilter===p ? 'bg-[#6c63ff] text-white' : 'bg-[#12121a] border border-[#22223a] text-slate-400'
-              }`}>{p}</button>
-          ))}
+      {/* filters — only for shop/sammlung */}
+      {tab !== 'meine' && <>
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Shield size={12} className="text-slate-500"/>
+            {POSITIONS.map(p=>(
+              <button key={p} onClick={()=>setPosFilter(p)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 ${
+                  posFilter===p ? 'bg-[#6c63ff] text-white' : 'bg-[#12121a] border border-[#22223a] text-slate-400'
+                }`}>{p}</button>
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Target size={12} className="text-slate-500"/>
-          {RARITIES.map(r=>(
-            <button key={r} onClick={()=>setRarFilter(r)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 ${
-                rarFilter===r ? 'bg-[#6c63ff] text-white' : 'bg-[#12121a] border border-[#22223a] text-slate-400'
-              }`}>{r==='Alle'?'Alle':RARITY_CONFIG[r].label}</button>
-          ))}
+        <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Target size={12} className="text-slate-500"/>
+            {RARITIES.map(r=>(
+              <button key={r} onClick={()=>setRarFilter(r)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 ${
+                  rarFilter===r ? 'bg-[#6c63ff] text-white' : 'bg-[#12121a] border border-[#22223a] text-slate-400'
+                }`}>{r==='Alle'?'Alle':RARITY_CONFIG[r].label}</button>
+            ))}
+          </div>
         </div>
-      </div>
+      </>}
 
-      {/* cards grid */}
-      {filtered.length===0 ? (
-        <div className="text-center py-16 text-slate-500">
-          <Trophy size={40} className="mx-auto mb-3 opacity-30"/>
-          <p className="font-bold">{tab==='sammlung'?'Noch keine Karten gesammelt!':'Keine Karten gefunden.'}</p>
-          {tab==='sammlung'&&<p className="text-sm mt-1">Gehe zum Shop und kaufe deine erste Karte!</p>}
-        </div>
+      {/* ── Meine Figuren tab ── */}
+      {tab === 'meine' ? (
+        (state.customCards ?? []).length === 0 ? (
+          <div className="text-center py-16 text-slate-500">
+            <Pencil size={40} className="mx-auto mb-3 opacity-30"/>
+            <p className="font-bold">Noch keine eigenen Figuren!</p>
+            <p className="text-sm mt-1">Gehe zu <strong className="text-white">Spieler zeichnen</strong>, zeichne eine Figur und speichere sie als Karte.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {(state.customCards ?? []).map(cc => (
+              <div key={cc.id} className="relative group rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-[0_0_20px_#f59e0b40] bg-gradient-to-b from-amber-900/40 to-[#12121a]">
+                {/* delete button */}
+                <button
+                  onClick={() => dispatch({ type: 'DELETE_CUSTOM_CARD', id: cc.id })}
+                  className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-black/60 text-red-400 hover:bg-red-500 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <Trash2 size={13}/>
+                </button>
+
+                {/* drawn figure */}
+                <div className="w-full aspect-[3/4] overflow-hidden bg-white">
+                  <img src={cc.imageData} alt={cc.name} className="w-full h-full object-cover"/>
+                </div>
+
+                {/* info bar */}
+                <div className="p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-white font-black text-sm truncate">{cc.name}</span>
+                    <span className="text-amber-400 text-[10px] font-bold bg-amber-500/20 px-1.5 py-0.5 rounded-md">{cc.position}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[9px] text-amber-400 font-bold uppercase tracking-wider">🎨 Eigene Figur</span>
+                  </div>
+                  <p className="text-slate-600 text-[9px] mt-1">
+                    {new Date(cc.createdAt).toLocaleDateString('de-DE')}
+                  </p>
+                </div>
+
+                {/* shimmer top accent */}
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-amber-400 to-transparent"/>
+              </div>
+            ))}
+          </div>
+        )
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {filtered.map(card=>(
-            <Card
-              key={card.id}
-              card={card}
-              owned={state.ownedCards.includes(card.id)}
-              onBuy={()=>buy(card)}/>
-          ))}
-        </div>
+        <>
+          {/* cards grid */}
+          {filtered.length===0 ? (
+            <div className="text-center py-16 text-slate-500">
+              <Trophy size={40} className="mx-auto mb-3 opacity-30"/>
+              <p className="font-bold">{tab==='sammlung'?'Noch keine Karten gesammelt!':'Keine Karten gefunden.'}</p>
+              {tab==='sammlung'&&<p className="text-sm mt-1">Gehe zum Shop und kaufe deine erste Karte!</p>}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {filtered.map(card=>(
+                <Card
+                  key={card.id}
+                  card={card}
+                  owned={state.ownedCards.includes(card.id)}
+                  onBuy={()=>buy(card)}/>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* toast */}

@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Pencil, Eraser, Square, Circle, Minus, Download, Trash2,
-  RotateCcw, RotateCw, Pipette, PaintBucket, Brush, Move
+  RotateCcw, RotateCw, Pipette, PaintBucket, Brush, Move, Trophy, X
 } from 'lucide-react';
+import { useCoins } from '../context/CoinContext';
 
 type Tool = 'pencil' | 'brush' | 'eraser' | 'line' | 'rect' | 'circle'
           | 'fill' | 'picker' | 'spray' | 'move';
@@ -19,14 +20,23 @@ const SIZES = [1, 2, 4, 7, 12, 20, 32];
 const W = 480;
 const H = 640;
 
+const POSITIONS_LIST = ['ST','LW','RW','MF','AM','CB','LB','RB','GK'];
+
 export default function SpielerZeichnen() {
   const canvasRef  = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
+  const { dispatch } = useCoins();
 
   const [tool, setTool]     = useState<Tool>('pencil');
   const [color, setColor]   = useState('#000000');
   const [size,  setSize]    = useState(4);
   const [drawing, setDrawing] = useState(false);
+
+  /* save-as-card dialog */
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [cardName, setCardName]   = useState('');
+  const [cardPos,  setCardPos]    = useState('ST');
+  const [savedToast, setSavedToast] = useState(false);
   const historyRef = useRef<ImageData[]>([]);
   const futureRef  = useRef<ImageData[]>([]);
   const [startPt, setStartPt] = useState({ x: 0, y: 0 });
@@ -256,6 +266,25 @@ export default function SpielerZeichnen() {
     a.click();
   }
 
+  function saveAsCard() {
+    if (!cardName.trim()) return;
+    const imageData = canvasRef.current!.toDataURL('image/png');
+    dispatch({
+      type: 'ADD_CUSTOM_CARD',
+      card: {
+        id: `custom_${Date.now()}`,
+        name: cardName.trim(),
+        position: cardPos,
+        imageData,
+        createdAt: Date.now(),
+      },
+    });
+    setShowSaveDialog(false);
+    setCardName('');
+    setSavedToast(true);
+    setTimeout(() => setSavedToast(false), 2500);
+  }
+
   const cursor =
     tool === 'eraser' ? 'cell' :
     tool === 'picker' ? 'crosshair' :
@@ -316,9 +345,13 @@ export default function SpielerZeichnen() {
               <span className="text-[11px] font-bold">Farbe</span>
               <input type="color" value={color} onChange={e => setColor(e.target.value)} className="opacity-0 absolute pointer-events-none"/>
             </label>
+            <button onClick={() => setShowSaveDialog(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold transition active:scale-95">
+              <Trophy size={15}/> Als Karte
+            </button>
             <button onClick={download}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#6c63ff] hover:bg-[#5a52e8] text-white text-sm font-bold transition active:scale-95">
-              <Download size={15}/> Speichern
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#6c63ff] hover:bg-[#5a52e8] text-white text-sm font-bold transition active:scale-95">
+              <Download size={15}/> PNG
             </button>
           </div>
 
@@ -429,6 +462,75 @@ export default function SpielerZeichnen() {
 
         </div>
       </div>
+
+      {/* ── Save-as-card dialog ── */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="bg-[#12121a] border border-[#22223a] rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-black text-lg flex items-center gap-2">
+                <Trophy size={20} className="text-amber-400"/> Als Spielerkarte speichern
+              </h2>
+              <button onClick={() => setShowSaveDialog(false)} className="text-slate-500 hover:text-white transition">
+                <X size={20}/>
+              </button>
+            </div>
+
+            {/* mini preview */}
+            <div className="flex justify-center mb-4">
+              <img
+                src={canvasRef.current?.toDataURL('image/png')}
+                alt="Vorschau"
+                className="w-28 h-36 object-cover rounded-xl border-2 border-amber-500/50 shadow-[0_0_20px_#f59e0b50]"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-1">Spielername</label>
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="z.B. Max Mustermann"
+                  value={cardName}
+                  onChange={e => setCardName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && saveAsCard()}
+                  className="w-full bg-[#1a1a27] border border-[#22223a] text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-amber-500 transition"
+                />
+              </div>
+              <div>
+                <label className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-1">Position</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {POSITIONS_LIST.map(p => (
+                    <button key={p} onClick={() => setCardPos(p)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        cardPos === p ? 'bg-amber-500 text-black' : 'bg-[#1a1a27] border border-[#22223a] text-slate-400 hover:border-amber-500/40'
+                      }`}>{p}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-5">
+              <button onClick={() => setShowSaveDialog(false)}
+                className="flex-1 py-2.5 rounded-xl bg-[#1a1a27] border border-[#22223a] text-slate-400 text-sm font-bold hover:border-slate-500 transition">
+                Abbrechen
+              </button>
+              <button onClick={saveAsCard} disabled={!cardName.trim()}
+                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-black text-sm font-bold transition active:scale-95">
+                Karte erstellen ✓
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* saved toast */}
+      {savedToast && (
+        <div className="fixed bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-50 bg-amber-500 text-black text-sm font-black px-5 py-3 rounded-2xl shadow-2xl whitespace-nowrap flex items-center gap-2">
+          <Trophy size={16}/> Karte gespeichert! Schau in Spielerkarten → Meine Figuren
+        </div>
+      )}
     </div>
   );
 }
