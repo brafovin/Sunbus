@@ -29,251 +29,219 @@ function project(wx:number,wy:number,camX:number,W:number,H:number){
   return { sx, sy, scale };
 }
 
-/* ── Draw realistic broadcast player on canvas ── */
+/* ── Draw TV-broadcast player: realistic human silhouette at camera distance ── */
 function drawPlayer(
-  ctx:CanvasRenderingContext2D,
-  px:number, py:number, scale:number,
-  color:string, kitShorts:string, skin:string,
-  num:string, name:string,
-  phase:number, hasBall:boolean, isGK:boolean
-){
-  const H = 28 * scale;   /* total figure height in px */
-  const x = px, y = py;
+  ctx: CanvasRenderingContext2D,
+  px: number, py: number, scale: number,
+  color: string, kitShorts: string, skin: string,
+  num: string, name: string,
+  phase: number, _hasBall: boolean, isGK: boolean
+) {
+  const h = 26 * scale;   // total height in pixels
+  const lf = Math.sin(phase);   // leg swing factor -1..1
+  const af = Math.cos(phase);   // arm swing factor
 
   ctx.save();
-  ctx.translate(x, y);
+  ctx.translate(px, py);
 
-  /* shadow */
+  // ── SHADOW (angled, perspective-correct) ──
   ctx.save();
-  ctx.globalAlpha = 0.35;
+  ctx.globalAlpha = 0.22;
   ctx.fillStyle = '#000';
   ctx.beginPath();
-  ctx.ellipse(0, H*0.52, H*0.28, H*0.07, 0, 0, Math.PI*2);
+  ctx.ellipse(h*0.06, h*0.48, h*0.26, h*0.055, 0.15, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
-  /* running legs */
-  const lSwing = Math.sin(phase) * 0.45;
-  const rSwing = Math.sin(phase + Math.PI) * 0.45;
-
-  /* back leg */
+  // ── BACK LEG ──
+  const blLean = lf * 0.38;
   ctx.save();
-  ctx.rotate(rSwing);
-  /* thigh */
-  ctx.fillStyle = isGK ? '#f59e0b' : '#1a1a2a';
+  ctx.translate(h*0.04, h*0.14);
+  ctx.rotate(-blLean);
+  // thigh
+  ctx.fillStyle = isGK ? '#92400e' : '#0f172a';
   ctx.beginPath();
-  ctx.moveTo(-H*0.08, H*0.15);
-  ctx.quadraticCurveTo(-H*0.12, H*0.32, -H*0.07, H*0.42);
-  ctx.quadraticCurveTo(-H*0.02, H*0.44, H*0.03, H*0.42);
-  ctx.quadraticCurveTo(H*0.04, H*0.32, H*0.05, H*0.15);
-  ctx.closePath();
+  ctx.roundRect(-h*0.055, 0, h*0.11, h*0.2, h*0.04);
   ctx.fill();
-  /* shin */
-  ctx.fillStyle = '#111';
+  // knee bend
+  ctx.save();
+  ctx.translate(0, h*0.2);
+  ctx.rotate(blLean * 1.2);
+  // shin
+  ctx.fillStyle = '#111827';
   ctx.beginPath();
-  ctx.moveTo(-H*0.07, H*0.42);
-  ctx.quadraticCurveTo(-H*0.1, H*0.54, -H*0.08, H*0.64);
-  ctx.quadraticCurveTo(-H*0.04, H*0.66, H*0.01, H*0.64);
-  ctx.quadraticCurveTo(H*0.03, H*0.54, H*0.03, H*0.42);
-  ctx.closePath();
+  ctx.roundRect(-h*0.045, 0, h*0.09, h*0.18, h*0.035);
   ctx.fill();
-  /* sock */
+  // sock
+  ctx.fillStyle = 'rgba(240,240,240,0.92)';
+  ctx.beginPath();
+  ctx.roundRect(-h*0.045, h*0.1, h*0.09, h*0.08, h*0.02);
+  ctx.fill();
+  // boot
+  ctx.fillStyle = '#0a0a0a';
+  ctx.beginPath();
+  ctx.ellipse(h*0.01, h*0.19, h*0.085, h*0.034, 0.25, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.restore();
+
+  // ── FRONT LEG ──
+  const flLean = -lf * 0.38;
+  ctx.save();
+  ctx.translate(-h*0.04, h*0.14);
+  ctx.rotate(-flLean);
+  ctx.fillStyle = isGK ? '#b45309' : '#1e293b';
+  ctx.beginPath();
+  ctx.roundRect(-h*0.06, 0, h*0.12, h*0.2, h*0.04);
+  ctx.fill();
+  ctx.save();
+  ctx.translate(0, h*0.2);
+  ctx.rotate(flLean * 1.2);
+  ctx.fillStyle = '#1f2937';
+  ctx.beginPath();
+  ctx.roundRect(-h*0.05, 0, h*0.1, h*0.18, h*0.035);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(248,248,248,0.95)';
+  ctx.beginPath();
+  ctx.roundRect(-h*0.05, h*0.1, h*0.1, h*0.08, h*0.02);
+  ctx.fill();
+  ctx.fillStyle = '#050505';
+  ctx.beginPath();
+  ctx.ellipse(-h*0.01, h*0.19, h*0.092, h*0.036, -0.25, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.restore();
+
+  // ── SHORTS ──
+  const sg = ctx.createLinearGradient(-h*0.16, h*0.1, h*0.1, h*0.24);
+  sg.addColorStop(0, lighten(kitShorts, 12));
+  sg.addColorStop(1, darken(kitShorts, 22));
+  ctx.fillStyle = sg;
+  ctx.beginPath();
+  ctx.roundRect(-h*0.16, h*0.1, h*0.32, h*0.13, h*0.04);
+  ctx.fill();
+
+  // ── JERSEY (torso) — proper human shape ──
+  const jg = ctx.createLinearGradient(-h*0.18, -h*0.06, h*0.09, h*0.15);
+  jg.addColorStop(0, lighten(color, 28));
+  jg.addColorStop(0.35, lighten(color, 8));
+  jg.addColorStop(0.7, color);
+  jg.addColorStop(1, darken(color, 32));
+  ctx.fillStyle = jg;
+  ctx.beginPath();
+  ctx.moveTo(-h*0.04, -h*0.12);                    // collar L
+  ctx.bezierCurveTo(-h*0.14, -h*0.1, -h*0.2, -h*0.02, -h*0.19, h*0.1);
+  ctx.lineTo(-h*0.16, h*0.13);
+  ctx.lineTo(h*0.16, h*0.13);
+  ctx.lineTo(h*0.19, h*0.1);
+  ctx.bezierCurveTo(h*0.2, -h*0.02, h*0.14, -h*0.1, h*0.04, -h*0.12);  // collar R
+  ctx.bezierCurveTo(h*0.02, -h*0.14, -h*0.02, -h*0.14, -h*0.04, -h*0.12);
+  ctx.fill();
+
+  // jersey sheen (stadium lights from above)
+  ctx.save();
+  ctx.globalAlpha = 0.11;
+  const sh = ctx.createLinearGradient(-h*0.14, -h*0.1, -h*0.05, h*0.08);
+  sh.addColorStop(0, '#fff');
+  sh.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = sh;
+  ctx.beginPath();
+  ctx.moveTo(-h*0.04, -h*0.12);
+  ctx.bezierCurveTo(-h*0.14, -h*0.1, -h*0.18, -h*0.02, -h*0.15, h*0.06);
+  ctx.lineTo(-h*0.04, h*0.06);
+  ctx.bezierCurveTo(-h*0.04, -h*0.05, -h*0.02, -h*0.1, -h*0.04, -h*0.12);
+  ctx.fill();
+  ctx.restore();
+
+  // number
   ctx.fillStyle = 'rgba(255,255,255,0.88)';
-  ctx.beginPath();
-  ctx.moveTo(-H*0.08, H*0.55);
-  ctx.quadraticCurveTo(-H*0.09, H*0.63, -H*0.08, H*0.64);
-  ctx.quadraticCurveTo(-H*0.03, H*0.66, H*0.01, H*0.64);
-  ctx.quadraticCurveTo(H*0.02, H*0.62, H*0.03, H*0.55);
-  ctx.closePath();
-  ctx.fill();
-  /* boot */
-  ctx.fillStyle = '#111';
-  ctx.beginPath();
-  ctx.ellipse(-H*0.04, H*0.65, H*0.13, H*0.05, -0.2, 0, Math.PI*2);
-  ctx.fill();
-  ctx.restore();
-
-  /* front leg */
-  ctx.save();
-  ctx.rotate(lSwing);
-  ctx.fillStyle = isGK ? '#f59e0b' : '#1a1a2a';
-  ctx.beginPath();
-  ctx.moveTo(-H*0.07, H*0.15);
-  ctx.quadraticCurveTo(-H*0.13, H*0.32, -H*0.08, H*0.42);
-  ctx.quadraticCurveTo(-H*0.01, H*0.45, H*0.05, H*0.42);
-  ctx.quadraticCurveTo(H*0.06, H*0.32, H*0.06, H*0.15);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = '#222';
-  ctx.beginPath();
-  ctx.moveTo(-H*0.08, H*0.42);
-  ctx.quadraticCurveTo(-H*0.11, H*0.54, -H*0.09, H*0.64);
-  ctx.quadraticCurveTo(-H*0.03, H*0.67, H*0.03, H*0.64);
-  ctx.quadraticCurveTo(H*0.05, H*0.54, H*0.06, H*0.42);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = 'white';
-  ctx.beginPath();
-  ctx.moveTo(-H*0.09, H*0.55);
-  ctx.quadraticCurveTo(-H*0.1, H*0.63, -H*0.09, H*0.64);
-  ctx.quadraticCurveTo(-H*0.02, H*0.67, H*0.03, H*0.64);
-  ctx.quadraticCurveTo(H*0.04, H*0.62, H*0.05, H*0.55);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = '#111';
-  ctx.beginPath();
-  ctx.ellipse(-H*0.03, H*0.66, H*0.14, H*0.05, 0.2, 0, Math.PI*2);
-  ctx.fill();
-  ctx.restore();
-
-  /* shorts */
-  ctx.fillStyle = kitShorts;
-  ctx.beginPath();
-  ctx.roundRect(-H*0.2, H*0.12, H*0.4, H*0.17, H*0.06);
-  ctx.fill();
-
-  /* jersey body */
-  const jerseyGrad = ctx.createLinearGradient(-H*0.22, -H*0.05, H*0.15, H*0.3);
-  jerseyGrad.addColorStop(0, lighten(color, 18));
-  jerseyGrad.addColorStop(0.5, color);
-  jerseyGrad.addColorStop(1, darken(color, 30));
-  ctx.fillStyle = jerseyGrad;
-  ctx.beginPath();
-  ctx.moveTo(-H*0.22, -H*0.05);
-  ctx.quadraticCurveTo(-H*0.26, H*0.06, -H*0.22, H*0.17);
-  ctx.lineTo(H*0.22, H*0.17);
-  ctx.quadraticCurveTo(H*0.26, H*0.06, H*0.22, -H*0.05);
-  ctx.quadraticCurveTo(H*0.12, -H*0.16, 0, -H*0.17);
-  ctx.quadraticCurveTo(-H*0.12, -H*0.16, -H*0.22, -H*0.05);
-  ctx.fill();
-
-  /* jersey sheen */
-  ctx.save();
-  ctx.globalAlpha = 0.08;
-  ctx.fillStyle = '#fff';
-  ctx.beginPath();
-  ctx.moveTo(-H*0.2, -H*0.05);
-  ctx.quadraticCurveTo(-H*0.22, H*0.05, -H*0.18, H*0.15);
-  ctx.lineTo(-H*0.05, H*0.15);
-  ctx.lineTo(-H*0.08, -H*0.14);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-
-  /* number on jersey */
-  ctx.fillStyle = 'rgba(255,255,255,0.92)';
-  ctx.font = `bold ${H*0.18}px 'Arial Narrow',Arial,sans-serif`;
+  ctx.font = `bold ${Math.max(4, h*0.15)}px Arial,sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(num, 0, H*0.04);
+  ctx.fillText(num, 0, h*0.02);
 
-  /* arms (left) */
-  const armL = Math.sin(phase + Math.PI) * 0.35;
+  // ── LEFT ARM ──
   ctx.save();
-  ctx.rotate(armL);
-  ctx.fillStyle = color;
+  ctx.translate(-h*0.2, -h*0.04);
+  ctx.rotate(af * 0.32);
+  ctx.fillStyle = darken(color, 15);
   ctx.beginPath();
-  ctx.moveTo(-H*0.22, -H*0.05);
-  ctx.quadraticCurveTo(-H*0.36, H*0.02, -H*0.33, H*0.16);
-  ctx.quadraticCurveTo(-H*0.27, H*0.18, -H*0.22, H*0.14);
-  ctx.quadraticCurveTo(-H*0.24, H*0.04, -H*0.16, -H*0.02);
-  ctx.closePath();
+  ctx.roundRect(-h*0.06, 0, h*0.065, h*0.17, h*0.025);
   ctx.fill();
-  /* forearm skin */
+  // forearm
+  ctx.translate(0, h*0.17);
+  ctx.rotate(af * 0.15);
   ctx.fillStyle = skin;
   ctx.beginPath();
-  ctx.moveTo(-H*0.33, H*0.16);
-  ctx.quadraticCurveTo(-H*0.38, H*0.24, -H*0.34, H*0.28);
-  ctx.quadraticCurveTo(-H*0.28, H*0.29, -H*0.24, H*0.22);
-  ctx.quadraticCurveTo(-H*0.27, H*0.18, -H*0.28, H*0.14);
-  ctx.closePath();
+  ctx.roundRect(-h*0.055, 0, h*0.058, h*0.12, h*0.022);
   ctx.fill();
   ctx.restore();
 
-  /* arms (right) */
-  const armR = Math.sin(phase) * 0.35;
+  // ── RIGHT ARM ──
   ctx.save();
-  ctx.rotate(armR);
-  ctx.fillStyle = color;
+  ctx.translate(h*0.2, -h*0.04);
+  ctx.rotate(-af * 0.32);
+  ctx.fillStyle = darken(color, 15);
   ctx.beginPath();
-  ctx.moveTo(H*0.22, -H*0.05);
-  ctx.quadraticCurveTo(H*0.36, H*0.02, H*0.33, H*0.16);
-  ctx.quadraticCurveTo(H*0.27, H*0.18, H*0.22, H*0.14);
-  ctx.quadraticCurveTo(H*0.24, H*0.04, H*0.16, -H*0.02);
-  ctx.closePath();
+  ctx.roundRect(-h*0.005, 0, h*0.065, h*0.17, h*0.025);
   ctx.fill();
+  ctx.translate(0, h*0.17);
+  ctx.rotate(-af * 0.15);
   ctx.fillStyle = skin;
   ctx.beginPath();
-  ctx.moveTo(H*0.33, H*0.16);
-  ctx.quadraticCurveTo(H*0.38, H*0.24, H*0.34, H*0.28);
-  ctx.quadraticCurveTo(H*0.28, H*0.29, H*0.24, H*0.22);
-  ctx.quadraticCurveTo(H*0.27, H*0.18, H*0.28, H*0.14);
-  ctx.closePath();
+  ctx.roundRect(-h*0.005, 0, h*0.058, h*0.12, h*0.022);
   ctx.fill();
   ctx.restore();
 
-  /* neck */
+  // ── NECK ──
   ctx.fillStyle = skin;
   ctx.beginPath();
-  ctx.ellipse(0, -H*0.18, H*0.08, H*0.06, 0, 0, Math.PI*2);
+  ctx.roundRect(-h*0.055, -h*0.15, h*0.11, h*0.05, h*0.025);
   ctx.fill();
 
-  /* head */
-  const headGrad = ctx.createRadialGradient(-H*0.06, -H*0.32, 0, 0, -H*0.28, H*0.18);
-  headGrad.addColorStop(0, lighten(skin, 15));
-  headGrad.addColorStop(1, darken(skin, 20));
-  ctx.fillStyle = headGrad;
+  // ── HEAD — proper sphere with stadium lighting ──
+  const hRad = h * 0.13;
+  const hg = ctx.createRadialGradient(
+    -hRad * 0.3, -h*0.24 - hRad * 0.35, hRad * 0.05,
+     0,           -h*0.24,               hRad
+  );
+  hg.addColorStop(0, lighten(skin, 22));
+  hg.addColorStop(0.55, skin);
+  hg.addColorStop(1, darken(skin, 28));
+  ctx.fillStyle = hg;
   ctx.beginPath();
-  ctx.ellipse(0, -H*0.28, H*0.15, H*0.17, 0, 0, Math.PI*2);
+  ctx.ellipse(0, -h*0.24, hRad, hRad * 1.08, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  /* hair */
-  ctx.fillStyle = '#1e0e04';
+  // hair (dark cap)
+  ctx.fillStyle = '#150a02';
   ctx.beginPath();
-  ctx.ellipse(0, -H*0.38, H*0.15, H*0.09, 0, 0, Math.PI*2);
+  ctx.ellipse(0, -h*0.3, hRad * 1.02, hRad * 0.62, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(-H*0.12, -H*0.3, H*0.06, H*0.1, -0.4, 0, Math.PI*2);
+  ctx.ellipse(-hRad*0.8, -h*0.24, hRad*0.4, hRad*0.72, -0.3, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(H*0.12, -H*0.3, H*0.06, H*0.1, 0.4, 0, Math.PI*2);
+  ctx.ellipse(hRad*0.8, -h*0.24, hRad*0.4, hRad*0.72, 0.3, 0, Math.PI * 2);
   ctx.fill();
 
-  /* eyes */
-  ctx.fillStyle = 'rgba(0,0,0,0.65)';
-  ctx.beginPath(); ctx.arc(-H*0.07, -H*0.27, H*0.025, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc( H*0.05, -H*0.27, H*0.025, 0, Math.PI*2); ctx.fill();
-
-  /* name tag */
-  const tagW = H * 0.95;
-  const tagH = H * 0.18;
-  const tagY = H * 0.58;
-  ctx.fillStyle = 'rgba(0,0,0,0.78)';
+  // ── NAME TAG (broadcast style) ──
+  const tw = Math.max(h * 0.85, 28);
+  const th = Math.max(h * 0.17, 9);
+  const ty = h * 0.5;
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
   ctx.beginPath();
-  ctx.roundRect(-tagW/2, tagY, tagW, tagH, H*0.04);
+  ctx.roundRect(-tw/2, ty, tw, th, 2);
   ctx.fill();
   ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.roundRect(-tagW/2, tagY, tagW*0.28, tagH, [H*0.04, 0, 0, H*0.04]);
+  ctx.roundRect(-tw/2, ty, tw*0.26, th, [2,0,0,2]);
   ctx.fill();
   ctx.fillStyle = '#fff';
-  ctx.font = `bold ${H*0.13}px Arial,sans-serif`;
+  ctx.font = `bold ${Math.max(4, th*0.68)}px Arial,sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(name, H*0.02, tagY + tagH/2);
-
-  /* ball near feet */
-  if(hasBall){
-    const bx = H*0.32, by = H*0.52;
-    ctx.fillStyle = 'rgba(0,0,0,0.28)';
-    ctx.beginPath(); ctx.ellipse(bx, by+H*0.06, H*0.12, H*0.04, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(bx, by, H*0.1, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = '#333'; ctx.lineWidth = H*0.015;
-    ctx.beginPath(); ctx.arc(bx, by, H*0.1, 0, Math.PI*2); ctx.stroke();
-    ctx.fillStyle = '#111';
-    ctx.beginPath(); ctx.arc(bx, by, H*0.04, 0, Math.PI*2); ctx.fill();
-  }
+  ctx.fillText(name, tw*0.02, ty + th/2);
 
   ctx.restore();
 }
@@ -399,28 +367,46 @@ function LivePitch({ match, playing }:{match:typeof matches[0]; playing:boolean}
     ctx.fillRect(0,railY,W,H*0.012);
 
     /* ── PITCH ── */
-    /* base green */
-    ctx.fillStyle='#1d6e1d';
-    ctx.fillRect(0,H*0.27,W,H*0.73);
+    /* ── PITCH BASE — rich stadium green ── */
+    const pitchBase = ctx.createLinearGradient(0, H*0.28, 0, H*0.88);
+    pitchBase.addColorStop(0,   '#1a5c1a');
+    pitchBase.addColorStop(0.5, '#1f6e1f');
+    pitchBase.addColorStop(1,   '#236023');
+    ctx.fillStyle = pitchBase;
+    ctx.fillRect(0, H*0.27, W, H*0.73);
 
-    /* mowing stripes — trapezoid perspective */
-    for(let i=0;i<12;i++){
-      const t0=i/12, t1=(i+1)/12;
-      const y0=H*0.28+t0*(H*0.92-H*0.28);
-      const y1=H*0.28+t1*(H*0.92-H*0.28);
-      const scX0=0.38+t0*0.85, scX1=0.38+t1*0.85;
-      ctx.fillStyle=i%2===0?'#216b21':'#1b611b';
+    /* mowing stripes in proper perspective trapezoids */
+    const TOP_Y = H*0.30, BOT_Y = H*0.86;
+    const STRIPES = 14;
+    for(let i=0;i<STRIPES;i++){
+      const t0=i/STRIPES, t1=(i+1)/STRIPES;
+      // map stripe t to world wy, then project top and bottom
+      const wy0 = -38 + t0*76, wy1 = -38 + t1*76;
+      const y0 = TOP_Y + ((wy0+38)/76)*(BOT_Y-TOP_Y);
+      const y1 = TOP_Y + ((wy1+38)/76)*(BOT_Y-TOP_Y);
+      const scX0 = 0.45 + ((wy0+38)/76)*0.55;
+      const scX1 = 0.45 + ((wy1+38)/76)*0.55;
+      const dark = i%2===0;
+      ctx.fillStyle = dark ? '#1a5f1a' : '#216621';
       ctx.beginPath();
-      ctx.moveTo(W/2-W*scX0/2,y0); ctx.lineTo(W/2+W*scX0/2,y0);
-      ctx.lineTo(W/2+W*scX1/2,y1); ctx.lineTo(W/2-W*scX1/2,y1);
+      ctx.moveTo(W/2-W*scX0/2, y0); ctx.lineTo(W/2+W*scX0/2, y0);
+      ctx.lineTo(W/2+W*scX1/2, y1); ctx.lineTo(W/2-W*scX1/2, y1);
       ctx.closePath(); ctx.fill();
     }
 
-    /* stadium light on pitch */
-    const pitchLight=ctx.createRadialGradient(W/2,H*0.5,0,W/2,H*0.5,W*0.6);
-    pitchLight.addColorStop(0,'rgba(255,255,220,0.07)');
-    pitchLight.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=pitchLight; ctx.fillRect(0,H*0.27,W,H*0.73);
+    /* stadium floodlight: 4 light sources from corners */
+    [[0.08,0.05],[0.92,0.05],[0.08,0.95],[0.92,0.95]].forEach(([fx,fy])=>{
+      const lg = ctx.createRadialGradient(W*fx, H*(fy*0.6+0.28), 0, W*fx, H*(fy*0.6+0.28), W*0.55);
+      lg.addColorStop(0, 'rgba(255,250,200,0.055)');
+      lg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = lg;
+      ctx.fillRect(0, H*0.27, W, H*0.73);
+    });
+    /* center bright spot */
+    const cl = ctx.createRadialGradient(W/2, H*0.57, 0, W/2, H*0.57, W*0.4);
+    cl.addColorStop(0, 'rgba(255,252,220,0.06)');
+    cl.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = cl; ctx.fillRect(0, H*0.27, W, H*0.73);
 
     /* ── PITCH LINES ── */
     function pp2(wx:number,wy:number){return project(wx,wy,cx,W,H);}
